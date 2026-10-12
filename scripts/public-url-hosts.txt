@@ -39,6 +39,10 @@ v8.dev
 www.i18next.com
 www.patreon.com
 www.w3.org
+apps.obtainium.imranr.dev
+wiki.obtainium.imranr.dev
+obtainium.imranr.dev
+api.github.com
 fsf.org
 www.gnu.org
 opensource.org

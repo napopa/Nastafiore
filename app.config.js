@@ -19,7 +19,7 @@ module.exports = ({ config }) => {
 			],
 			android: {
 				package: packageName,
-				versionCode: 2026101201,
+				versionCode: require("./package.json").androidVersionCode,
 				edgeToEdgeEnabled: true,
 				permissions: [
 					"CHANGE_WIFI_MULTICAST_STATE",

@@ -1,91 +1,27 @@
-<a href="https://sawyerf.github.io/Castafiore/">
-  <picture>
-    <source media="(prefers-color-scheme: dark)" srcset="https://github.com/sawyerf/Castafiore/assets/22857002/ad3f2f95-92d8-4b09-83fe-d0d9a4dd61e1#gh-dark-mode-only">
-    <img alt="logo" src="https://github.com/sawyerf/Castafiore/assets/22857002/a6969f24-415a-497a-99ef-f2c9da432d27#gh-light-mode-only">
-  </picture>
-</a>
+# Castafiore (napopa)
 
-<div align="center">
-  <a href="https://github.com/user-attachments/assets/860f7c32-bd7d-47af-9e46-86e298a48002" >
-    <img style="width: 20%; margin-right: 5px;" src="https://github.com/user-attachments/assets/860f7c32-bd7d-47af-9e46-86e298a48002" />
-  </a>
-  <a href="https://github.com/user-attachments/assets/46bcde04-fe5d-4078-b7d3-de2f0db006b7" >
-    <img style="width: 20%; margin-right: 5px;" src="https://github.com/user-attachments/assets/46bcde04-fe5d-4078-b7d3-de2f0db006b7" />
-  </a>
-  <a href="https://github.com/user-attachments/assets/a4a2b19e-17bb-4cc1-a3cb-1c8a8b30162f" >
-    <img style="width: 20%; margin-right: 5px;" src="https://github.com/user-attachments/assets/a4a2b19e-17bb-4cc1-a3cb-1c8a8b30162f" />
-  </a>
-  <a href="https://github.com/user-attachments/assets/868031fc-0ddb-4a21-80c5-867fbd368235" >
-    <img style="width: 20%; margin-right: 5px;" src="https://github.com/user-attachments/assets/868031fc-0ddb-4a21-80c5-867fbd368235" />
-  </a>
-</div>
+Android and web/PWA fork of [Castafiore](https://github.com/sawyerf/Castafiore), preserving its Navidrome/Subsonic player, themes and navigation. Adds full MusicBrainz discovery, ListenBrainz popularity totals and reviewed full-album requests through Lidarr.
 
-</br>
+## Install and update with Obtainium
 
-<div align=center>
-  <b>Castafiore</b> is a music player that support Subsonic API. It is available on the following platforms: <b>Web</b> (PWA), <b>Android</b>.
-  </br>
-  </br>
+[Install with Obtainium](https://apps.obtainium.imranr.dev/redirect?r=obtainium%3A%2F%2Fapp%2F%257B%2522id%2522%253A%2522com.napopa.castafiore%2522%252C%2522url%2522%253A%2522https%253A%252F%252Fgithub.com%252Fnapopa%252FCastafiore%2522%252C%2522author%2522%253A%2522napopa%2522%252C%2522name%2522%253A%2522Castafiore%2520%2528napopa%2529%2522%252C%2522additionalSettings%2522%253A%257B%2522apkFilterRegEx%2522%253A%2522%255ECastafiore-napopa-universal%255C%255C.apk%2524%2522%252C%2522includePrereleases%2522%253Afalse%257D%257D)
 
+With Obtainium installed, open that link, confirm the import and press Install. Android asks for permission to install apps from Obtainium the first time. Obtainium then tracks stable APK releases from this repository. No GitHub token or account is needed.
 
+Alternatively, in Obtainium choose Add app and enter:
 
-  <a href="https://play.google.com/store/apps/details?id=com.sawyerf.castafiore"><img src="https://github.com/user-attachments/assets/b6f3a981-e88d-43ad-be25-ef556d991269" alt="Google Play"></a>
-  <a href="https://github.com/sawyerf/Castafiore/releases/latest"><img src="https://github.com/user-attachments/assets/9f773ff9-07fc-47e4-8bd3-9a232fd97413" alt="DOWNLOAD APK"></a>
-  <a href="https://sawyerf.github.io/Castafiore/"><img src="https://github.com/user-attachments/assets/9c697790-cc75-4195-b7f4-4f74c0aeb9ac" alt="PWA"></a>
-</div>
-
-## Support Feature
-- Customize Home page
-- Offline music
-- Favorited
-- Playlist
-- Radio
-- Lyrics
-- Listenbrainz stats
-- Listenbrainz fresh releases
-- Multi-languages
-- Theme
-
-## Install PWA on desktop
-1. Open Google Chrome
-2. Go to the [website](https://sawyerf.github.io/Castafiore/)
-3. In the address bar, click the Install icon
-4. Confirm by clicking Install
-
-## Build locally
-### Web
-If you want to build the web version, run the following command:
-```bash
-npm i
-npm run export:web
-```
-It will generate a folder `web-build` that you can deploy to your server.
-
-### Android
-If you want to build the .apk, you need to install Android Studio and you run the following command
-```bash
-npm i
-npm run export:android
+```text
+https://github.com/napopa/Castafiore
 ```
 
-## Development
-### Web
-If you want to run the app in development mode, run the following command:
-```bash
-npm i
-npm run web
-```
+[Latest signed APK](https://github.com/napopa/Castafiore/releases/latest) · [Obtainium import configuration](public/obtainium.json)
 
-### Android
-If you want to run the app in development mode for android, you need to install Android Studio.
+Package: `com.napopa.castafiore`. Display name: Castafiore (napopa). Android 7 or newer. One universal APK supports ARM, ARM64, x86 and x86_64 and coexists with the upstream app. Updates use the same signing key; signing material stays outside GitHub.
 
-Run the following command that will created an apk
-```bash
-npm i
-npm run export:dev
-```
+## Connect
 
-Install the apk and run the dev server
-```bash
-npm run android
-```
+Connect to Navidrome/Subsonic in Settings. For album requests, open Settings → Catalog integrations and enter your Lidarr URL and API key on the device. These values are supplied at runtime; no personal service addresses or credentials are bundled. Search switches between Library and Catalog, then Artists, Albums or Tracks. Missing music opens album review, and requesting does not interrupt playback.
+
+[Catalog behavior, integration storage and verification](docs/catalog.md) · [Local builds and releases](docs/catalog.md#android-releases-for-obtainium)
+
+The fork preserves upstream offline music, favorites, playlists, radio, lyrics, ListenBrainz discovery, translations and themes. Source and license attribution remain available in this repository. The upstream project is maintained by [sawyerf](https://github.com/sawyerf/Castafiore).

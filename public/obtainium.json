@@ -1,0 +1,10 @@
+{
+  "id": "com.napopa.castafiore",
+  "url": "https://github.com/napopa/Castafiore",
+  "author": "napopa",
+  "name": "Castafiore (napopa)",
+  "additionalSettings": {
+    "apkFilterRegEx": "^Castafiore-napopa-universal\\.apk$",
+    "includePrereleases": false
+  }
+}
