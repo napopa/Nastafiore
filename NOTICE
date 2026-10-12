@@ -1,0 +1,33 @@
+Castafiore (napopa)
+
+This is an independent fork of Castafiore by sawyerf and its contributors:
+https://github.com/sawyerf/Castafiore
+Upstream baseline: 40c3cc60a309379b1004d72c97a8bba7cb303f73.
+
+The fork, as a combined work, is distributed under the GNU General Public
+License, version 3 only (SPDX: GPL-3.0-only), with the limited additional
+permission in LICENSE.google-cast. The full GPL text is in LICENSE.
+
+New copyrightable fork contributions: Copyright (C) 2026 napopa.
+These contributions are licensed under the terms described above. They add
+catalog discovery, album requests, integration storage, availability tracking,
+fork branding, local builds and release/publication tooling. They also modify
+the existing interface. The first fork changes were made on 2026-10-12.
+
+The original upstream material remains available under the Unlicense. Its
+original notice is preserved verbatim in LICENSE.upstream. Applying GPLv3 to
+this combined fork does not revoke upstream permissions or claim exclusive
+copyright in the original material.
+
+Third-party dependencies, fonts and other third-party assets retain their
+respective licenses and copyright notices. The Google Cast SDK and its
+required Google Play services client libraries are separately licensed by
+Google; LICENSE.google-cast does not change their terms.
+
+This program is distributed WITHOUT ANY WARRANTY, including the implied
+warranties of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See
+LICENSE and LICENSE.upstream for the complete terms.
+
+Corresponding source and build scripts for each released version must be
+provided with that release. The source repository is:
+https://github.com/napopa/Castafiore

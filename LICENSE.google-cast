@@ -1,0 +1,20 @@
+Additional permission under GNU GPL version 3, section 7
+
+If you modify Castafiore (napopa), or any covered work, by linking or combining
+it with Google's unmodified Google Cast Android SDK and the unmodified Google
+Play services client libraries required by that SDK, the licensors of this
+Program grant you additional permission to convey the resulting work.
+
+The permission is limited to the Google Cast SDK and those required client
+libraries. It does not extend to other proprietary libraries or permit
+distribution of the GPL-covered Castafiore code under proprietary terms.
+
+You must provide the Corresponding Source for the GPL-covered portions of
+the resulting work, including your modifications and the build scripts, in
+accordance with the GNU GPL version 3. Google's SDK and client libraries
+remain subject to their own licenses; this permission does not grant rights
+in them or waive any obligations under their terms.
+
+You may remove this additional permission in accordance with GNU GPL
+version 3, section 7. If you modify this Program, you may extend this
+permission to your modifications, but you are not obliged to do so.
