@@ -1,4 +1,6 @@
 import React from 'react'
+import { integrationStore } from '~/catalog/storage'
+import { useCatalog } from '~/contexts/catalog'
 import { Text, View, ScrollView, Pressable } from 'react-native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { useTranslation } from 'react-i18next'
@@ -24,6 +26,7 @@ const Connect = ({ navigation }) => {
 	const { t } = useTranslation()
 	const insets = useSafeAreaInsets()
 	const config = useConfig()
+	const catalog = useCatalog()
 	const setConfig = useSetConfig()
 	const settings = useSettings()
 	const setSettings = useSetSettings()
@@ -140,7 +143,8 @@ const Connect = ({ navigation }) => {
 			</View>
 			<ButtonText
 				text={t("Disconnect")}
-				onPress={() => {
+				onPress={async () => {
+					await catalog.disconnect()
 					upConfig({ url: null, username: null, query: null })
 					setInfo(null)
 					setError('')
@@ -154,7 +158,8 @@ const Connect = ({ navigation }) => {
 							confirmAlert(
 								t('settings.connect.Alert Delete Title'),
 								t('settings.connect.Alert Delete Message'),
-								() => {
+								async () => {
+									await integrationStore.remove(serverOption)
 									setSettings({ ...settings, servers: settings.servers.filter((server, index) => index !== serverOption.index) })
 									setServerOption(null)
 								})

@@ -1,4 +1,5 @@
 import React from 'react'
+import { useCatalog } from '~/contexts/catalog'
 import { Linking } from 'react-native'
 import { useNavigation } from '@react-navigation/native'
 import { useTranslation } from 'react-i18next'
@@ -14,6 +15,7 @@ import size from '~/styles/size'
 
 const OptionsPlayer = ({ song, isOpen, setIsOpen, closePlayer }) => {
 	const { t } = useTranslation()
+	const catalog = useCatalog()
 	const settings = useSettings()
 	const setSettings = useSetSettings()
 	const navigation = useNavigation()
@@ -90,6 +92,16 @@ const OptionsPlayer = ({ song, isOpen, setIsOpen, closePlayer }) => {
 			}}
 			item={isOpen ? song : null}
 			options={[
+				{
+					name: 'Request full album',
+					icon: 'download',
+					onPress: () => {
+						refOption.current.close()
+						closePlayer?.()
+						catalog.openRequest(song)
+					},
+					hidden: song.isLiveStream
+				},
 				{
 					name: t('Go to artist'),
 					icon: 'user',

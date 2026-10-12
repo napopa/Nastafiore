@@ -4,6 +4,7 @@ import { SettingsProvider } from '~/contexts/settings'
 import { RemoteProvider } from '~/contexts/remote'
 import { ThemeProvider } from '~/contexts/theme'
 import { ConfigProvider } from '~/contexts/config'
+import { CatalogProvider } from '~/contexts/catalog'
 import { SongProvider } from '~/contexts/song'
 import { UpdateApiProvider } from '~/contexts/updateApi'
 import { useSong, useSongDispatch } from '~/contexts/song'
@@ -25,7 +26,7 @@ const AppProvider = ({ children }) => {
 						<UpdateApiProvider>
 							<RemoteProvider>
 								<PlayerEvent />
-								{children}
+								<CatalogProvider>{children}</CatalogProvider>
 							</RemoteProvider>
 						</UpdateApiProvider>
 					</ThemeProvider>

@@ -12,7 +12,8 @@
     "export:web": "cross-env PLATFORM=web expo export -p web && workbox generateSW workbox-config.js",
     "eslint": "eslint app index.js App.js -c eslint.config.mjs",
     "postinstall": "patch-package",
-    "test": "jest"
+    "test": "jest",
+    "ios": "expo run:ios"
   },
   "dependencies": {
     "@legendapp/list": "^1.1.4",
@@ -45,6 +46,7 @@
     "@babel/core": "^7.20.0",
     "@eslint/js": "^9.17.0",
     "@expo/metro-runtime": "~5.0.5",
+    "@playwright/test": "^1.64.0",
     "@testing-library/react-native": "^13.3.3",
     "babel-plugin-root-import": "^6.6.0",
     "cross-env": "^7.0.3",

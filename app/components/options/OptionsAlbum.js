@@ -1,4 +1,5 @@
 import React from 'react'
+import { useCatalog } from '~/contexts/catalog'
 import { Platform, Share } from 'react-native'
 import { useNavigation } from '@react-navigation/native'
 import { useTranslation } from 'react-i18next'
@@ -13,6 +14,7 @@ import OptionsPopup from '~/components/popup/OptionsPopup'
 
 const OptionsAlbum = ({ album, isOpen, onClose }) => {
 	const { t } = useTranslation()
+	const catalog = useCatalog()
 	const config = useConfig()
 	const navigation = useNavigation()
 	const refOption = React.useRef()
@@ -40,6 +42,15 @@ const OptionsAlbum = ({ album, isOpen, onClose }) => {
 			}}
 			item={album}
 			options={[
+				{
+					name: 'Request full album',
+					icon: 'download',
+					onPress: () => {
+						refOption.current.close()
+						catalog.openRequest({ ...album, mediaType: 'album' })
+					},
+					hidden: false
+				},
 				{
 					name: t('Play similar songs'),
 					icon: 'play',

@@ -1,4 +1,5 @@
 import React from 'react'
+import { useCatalog } from '~/contexts/catalog'
 import { Linking } from 'react-native'
 import { useNavigation } from '@react-navigation/native'
 import { useTranslation } from 'react-i18next'
@@ -13,6 +14,7 @@ import OptionsPopup from '~/components/popup/OptionsPopup'
 
 const OptionsQueue = ({ queue, indexOptions, setIndexOptions, closePlayer }) => {
 	const { t } = useTranslation()
+	const catalog = useCatalog()
 	const navigation = useNavigation()
 	const song = useSong()
 	const songDispatch = useSongDispatch()
@@ -92,6 +94,16 @@ const OptionsQueue = ({ queue, indexOptions, setIndexOptions, closePlayer }) => 
 			}}
 			item={indexOptions >= 0 ? queue[indexOptions] : null}
 			options={[
+				{
+					name: 'Request full album',
+					icon: 'download',
+					onPress: () => {
+						refOption.current.close()
+						closePlayer?.()
+						catalog.openRequest(queue[indexOptions])
+					},
+					hidden: indexOptions < 0 || queue[indexOptions]?.isLiveStream
+				},
 				{
 					name: t('Go to artist'),
 					icon: 'user',

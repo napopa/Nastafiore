@@ -1,4 +1,6 @@
 import React from 'react'
+import { useCatalog } from '~/contexts/catalog'
+import { CatalogButton } from '~/components/catalog/ui'
 import { ScrollView } from 'react-native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 
@@ -20,6 +22,7 @@ const Album = ({ navigation, route: { params } }) => {
 	const insets = useSafeAreaInsets()
 	const config = useConfig()
 	const theme = useTheme()
+	const catalog = useCatalog()
 	const [isStarred, setStarred] = React.useState(params.starred || false)
 	const [album, setAlbum] = React.useState(null)
 	const [isOptArtists, setIsOptArtists] = React.useState(false)
@@ -67,6 +70,8 @@ const Album = ({ navigation, route: { params } }) => {
 				close={() => setIsOptArtists(false)}
 				visible={isOptArtists}
 			/>
+			<CatalogButton onPress={() => catalog.openRequest({ ...(album || params), mediaType: 'album' })}>Request full album</CatalogButton>
+			<CatalogButton onPress={() => navigation.navigate('CatalogAlbum', { localAlbum: album || params })}>Catalog editions and popularity</CatalogButton>
 			<SongsList songs={songs} isIndex={true} />
 		</ScrollView>
 	)

@@ -40,6 +40,10 @@ import PlaylistsSettings from '~/screens/Settings/Playlists'
 import SharesSettings from '~/screens/Settings/Shares'
 import ThemeSettings from '~/screens/Settings/Theme'
 
+import CatalogArtist from '~/screens/Catalog/Artist'
+import CatalogAlbum from '~/screens/Catalog/Album'
+import CatalogSettings from '~/screens/Settings/Catalog'
+
 import { useTheme } from '~/contexts/theme'
 
 const Stack = createNativeStackNavigator()
@@ -73,6 +77,9 @@ export const HomeStack = () => {
 			<Stack.Screen name="Info" component={Info} />
 			<Stack.Screen name="Playlist" component={Playlist} />
 			<Stack.Screen name="Songs" component={Songs} />
+		<Stack.Screen name="CatalogArtist" component={CatalogArtist} />
+			<Stack.Screen name="CatalogAlbum" component={CatalogAlbum} />
+			<Stack.Screen name="Settings/Catalog" component={CatalogSettings} />
 		</Stack.Navigator>
 	)
 }
@@ -105,6 +112,9 @@ export const SearchStack = () => {
 			<Stack.Screen name="GenreSong" component={GenreSong} />
 			<Stack.Screen name="Info" component={Info} />
 			<Stack.Screen name="Songs" component={Songs} />
+		<Stack.Screen name="CatalogArtist" component={CatalogArtist} />
+			<Stack.Screen name="CatalogAlbum" component={CatalogAlbum} />
+			<Stack.Screen name="Settings/Catalog" component={CatalogSettings} />
 		</Stack.Navigator>
 	)
 }
@@ -136,6 +146,9 @@ export const PlaylistsStack = () => {
 			<Stack.Screen name="Info" component={Info} />
 			<Stack.Screen name="Playlist" component={Playlist} />
 			<Stack.Screen name="Songs" component={Songs} />
+		<Stack.Screen name="CatalogArtist" component={CatalogArtist} />
+			<Stack.Screen name="CatalogAlbum" component={CatalogAlbum} />
+			<Stack.Screen name="Settings/Catalog" component={CatalogSettings} />
 		</Stack.Navigator>
 	)
 }
@@ -166,6 +179,9 @@ export const SettingsStack = () => {
 			<Stack.Screen name="Settings/Shares" component={SharesSettings} />
 			<Stack.Screen name="Settings/Language" component={LanguageSettings} />
 			<Stack.Screen name="Settings/Logs" component={LogsSettings} />
+		<Stack.Screen name="CatalogArtist" component={CatalogArtist} />
+			<Stack.Screen name="CatalogAlbum" component={CatalogAlbum} />
+			<Stack.Screen name="Settings/Catalog" component={CatalogSettings} />
 		</Stack.Navigator>
 	)
 }

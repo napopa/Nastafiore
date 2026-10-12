@@ -63,6 +63,10 @@ const Settings = ({ navigation }) => {
 			</View>
 
 			<View style={settingStyles.optionsContainer(theme)}>
+				<ButtonMenu title="Catalog integrations" icon="search" onPress={() => navigation.navigate('Settings/Catalog')} isLast />
+			</View>
+
+			<View style={settingStyles.optionsContainer(theme)}>
 				<ButtonSwitch
 					title={t("Desktop")}
 					icon="desktop"

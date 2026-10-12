@@ -1,4 +1,5 @@
 import React from 'react'
+import { useCatalog } from '~/contexts/catalog'
 import { Platform, Share } from 'react-native'
 import { useNavigation } from '@react-navigation/native'
 import { useTranslation } from 'react-i18next'
@@ -16,6 +17,7 @@ import size from '~/styles/size'
 
 const OptionsSongsList = ({ songs, indexOptions, setIndexOptions, onUpdate = () => { }, idPlaylist = null }) => {
 	const { t } = useTranslation()
+	const catalog = useCatalog()
 	const navigation = useNavigation()
 	const song = useSong()
 	const songDispatch = useSongDispatch()
@@ -181,6 +183,15 @@ const OptionsSongsList = ({ songs, indexOptions, setIndexOptions, onUpdate = () 
 			}}
 			item={indexOptions >= 0 ? songs[indexOptions] : null}
 			options={[
+				{
+					name: 'Request full album',
+					icon: 'download',
+					onPress: () => {
+						refOption.current.close()
+						catalog.openRequest(songs[indexOptions])
+					},
+					hidden: songs[indexOptions]?.isLiveStream
+				},
 				{
 					name: t('Play similar songs'),
 					icon: 'play',
