@@ -25,3 +25,11 @@ Connect to Navidrome/Subsonic in Settings. For album requests, open Settings →
 [Catalog behavior, integration storage and verification](docs/catalog.md) · [Local builds and releases](docs/catalog.md#android-releases-for-obtainium)
 
 The fork preserves upstream offline music, favorites, playlists, radio, lyrics, ListenBrainz discovery, translations and themes. Source and license attribution remain available in this repository. The upstream project is maintained by [sawyerf](https://github.com/sawyerf/Castafiore).
+
+## License
+
+This fork is distributed under [GNU GPL version 3 only](LICENSE), with a [limited Google Cast linking permission](LICENSE.google-cast) to retain Android casting. New copyrightable fork contributions use these terms. Distributed modified versions must provide corresponding source under GPLv3. Commercial use and sale remain permitted.
+
+The original upstream material retains its [Unlicense](LICENSE.upstream). Third-party dependencies and assets retain their own licenses. [NOTICE](NOTICE) describes the scope and attribution. The app includes the license text under Settings → License and source.
+
+Each APK release must provide matching source and build scripts alongside its binary. Use the release's source tag when rebuilding; personal credentials and signing material are supplied locally.

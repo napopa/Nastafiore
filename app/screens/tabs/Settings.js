@@ -135,9 +135,14 @@ const Settings = ({ navigation }) => {
 
 			<View style={settingStyles.optionsContainer(theme)}>
 				<ButtonMenu
-					title="Github"
+					title="License and source"
+					icon="file-text"
+					onPress={() => navigation.navigate('Settings/License')}
+				/>
+				<ButtonMenu
+					title="GitHub fork"
 					icon="github"
-					onPress={() => Linking.openURL('https://github.com/sawyerf/Castafiore')}
+					onPress={() => Linking.openURL('https://github.com/napopa/Castafiore')}
 					isLast
 				/>
 			</View>

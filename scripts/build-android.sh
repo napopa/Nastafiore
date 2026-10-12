@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 cd "$(dirname "$0")/.."
+python3 scripts/sync-licenses.py --check
 export CASTAFIORE_SIGNING_PROPERTIES="${CASTAFIORE_SIGNING_PROPERTIES:-$HOME/.local/share/castafiore-signing/signing.properties}"
 test -f "$CASTAFIORE_SIGNING_PROPERTIES" || { echo 'Create signing material with python scripts/create-signing.py first' >&2; exit 1; }
 export ANDROID_HOME="${ANDROID_HOME:-$HOME/.local/share/castafiore-build/android-sdk}"

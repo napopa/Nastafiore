@@ -41,6 +41,8 @@ def prepare(apk, output, previous=None):
     if output == ROOT or ROOT in output.parents:
         raise ValueError('Keep release output outside the Git checkout')
     package = json.loads((ROOT / 'package.json').read_text())
+    run('python3', 'scripts/sync-licenses.py', '--check')
+    license_digest = json.loads((ROOT / 'public/licenses.json').read_text())['bundleSha256'].encode()
     version, code = package['version'], package['androidVersionCode']
     if not isinstance(code, int) or not 0 < code < 2147483648:
         raise ValueError('Set a valid integer androidVersionCode in package.json')
@@ -61,6 +63,8 @@ def prepare(apk, output, previous=None):
     if not secrets or any(not secret for secret in secrets):
         raise ValueError('Local signing configuration is incomplete')
     with zipfile.ZipFile(apk) as archive:
+        if license_digest not in archive.read('assets/index.android.bundle'):
+            raise ValueError('APK does not contain the current fork licenses; rebuild before release')
         for name in archive.namelist():
             data = archive.read(name)
             if any(secret in data for secret in secrets):
@@ -70,7 +74,10 @@ def prepare(apk, output, previous=None):
     target = output / ASSET
     shutil.copy2(apk, target)
     shutil.copy2(ROOT / 'public/obtainium.json', output / 'obtainium.json')
-    info = {'packageName': PACKAGE, 'version': version, 'versionCode': code, 'certificateSha256': CERTIFICATE, 'sourceCommit': run('git', 'rev-parse', 'HEAD').strip(), 'apkSha256': hashlib.sha256(target.read_bytes()).hexdigest(), 'architectures': identity['abis']}
+    for name in ['LICENSE', 'LICENSE.upstream', 'LICENSE.google-cast', 'NOTICE']:
+        shutil.copy2(ROOT / name, output / name)
+    run('git', 'archive', '--format=tar.gz', '--prefix=Castafiore-napopa/', '--output=' + str(output / 'Castafiore-napopa-source.tar.gz'), 'HEAD')
+    info = {'packageName': PACKAGE, 'version': version, 'versionCode': code, 'license': 'GPL-3.0-only', 'licenseNoticeSha256': license_digest.decode(), 'certificateSha256': CERTIFICATE, 'sourceCommit': run('git', 'rev-parse', 'HEAD').strip(), 'apkSha256': hashlib.sha256(target.read_bytes()).hexdigest(), 'architectures': identity['abis']}
     (output / 'release-info.json').write_text(json.dumps(info, indent=2) + '\n')
     sums = '\n'.join(f'{hashlib.sha256(p.read_bytes()).hexdigest()}  {p.name}' for p in sorted(output.iterdir()))
     (output / 'SHA256SUMS').write_text(sums + '\n')
