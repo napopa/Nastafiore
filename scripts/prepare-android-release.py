@@ -74,7 +74,7 @@ def prepare(apk, output, previous=None):
     target = output / ASSET
     shutil.copy2(apk, target)
     shutil.copy2(ROOT / 'public/obtainium.json', output / 'obtainium.json')
-    for name in ['LICENSE', 'LICENSE.upstream', 'LICENSE.google-cast', 'NOTICE']:
+    for name in ['LICENSE', 'LICENSE.google-cast', 'NOTICE']:
         shutil.copy2(ROOT / name, output / name)
     run('git', 'archive', '--format=tar.gz', '--prefix=Nastafiore/', '--output=' + str(output / 'Nastafiore-source.tar.gz'), 'HEAD')
     info = {'packageName': PACKAGE, 'version': version, 'versionCode': code, 'license': 'GPL-3.0-only', 'licenseNoticeSha256': license_digest.decode(), 'certificateSha256': CERTIFICATE, 'sourceCommit': run('git', 'rev-parse', 'HEAD').strip(), 'apkSha256': hashlib.sha256(target.read_bytes()).hexdigest(), 'architectures': identity['abis']}

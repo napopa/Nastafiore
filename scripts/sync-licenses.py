@@ -7,7 +7,7 @@ import json
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
-FILES = {'notice': 'NOTICE', 'gpl': 'LICENSE', 'cast': 'LICENSE.google-cast', 'upstream': 'LICENSE.upstream'}
+FILES = {'notice': 'NOTICE', 'gpl': 'LICENSE', 'cast': 'LICENSE.google-cast'}
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description=__doc__)

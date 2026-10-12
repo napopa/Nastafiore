@@ -8,7 +8,7 @@ module.exports = ({ config }) => {
 		expo: {
 			name: "Nastafiore" + (process.env.IS_DEV === "true" ? " (dev)" : ""),
 			slug: "Nastafiore",
-			description: "Nastafiore is a Navidrome and Subsonic music player with catalog discovery and album requests.",
+			description: "Nastafiore is a Navidrome and Subsonic music player with catalog browsing and Lidarr integration.",
 			version: config.version || require("./package.json").version,
 			orientation: "default",
 			icon: "./assets/icon.png",

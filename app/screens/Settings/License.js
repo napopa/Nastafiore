@@ -23,7 +23,7 @@ export default function License() {
 				<ButtonMenu title="Upstream Castafiore" icon="github" onPress={() => Linking.openURL('https://github.com/sawyerf/Castafiore')} isLast />
 			</View>
 			<View style={settingStyles.optionsContainer(theme)}>
-				{[['notice', 'Fork notice'], ['gpl', 'GPLv3 text'], ['cast', 'Google Cast linking permission'], ['upstream', 'Upstream Unlicense']].map(([key, title], index) => <ButtonMenu key={key} title={title} icon="file-text" onPress={() => setSelected(key)} isLast={index === 3} />)}
+				{[['notice', 'Fork notice'], ['gpl', 'GPLv3 text'], ['cast', 'Google Cast linking permission']].map(([key, title], index) => <ButtonMenu key={key} title={title} icon="file-text" onPress={() => setSelected(key)} isLast={index === 2} />)}
 			</View>
 			<Text selectable style={{ color: theme.primaryText, lineHeight: 22, paddingBottom: 30 }}>{licenses[selected]}</Text>
 		</View>
