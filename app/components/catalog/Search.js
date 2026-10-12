@@ -20,6 +20,8 @@ export default function Search() {
 	const [mode, setMode] = React.useState('Library'), [category, setCategory] = React.useState('artists'), [query, setQuery] = React.useState(''), [offset, setOffset] = React.useState(0)
 	const [items, setItems] = React.useState([]), [total, setTotal] = React.useState(0), [busy, setBusy] = React.useState(false), [error, setError] = React.useState(''), [metadata, setMetadata] = React.useState(null), [popMetadata, setPopMetadata] = React.useState(null)
 	const [history, setHistory] = React.useState([])
+	const [resultScope, setResultScope] = React.useState(catalog.scope)
+	React.useEffect(() => { setOffset(0); setItems([]); setTotal(0); setMetadata(null); setPopMetadata(null); setError(''); setResultScope(catalog.scope) }, [catalog.scope])
 	React.useEffect(() => { AsyncStorage.getItem('search.history').then(value => { try { setHistory(JSON.parse(value || '[]').filter(v => typeof v === 'string').slice(0, 12)) } catch { setHistory([]) } }) }, [])
 	React.useEffect(() => {
 		const controller = new AbortController()
@@ -50,6 +52,7 @@ export default function Search() {
 				}
 				if (controller.signal.aborted) return
 				setItems(previous => offset ? [...previous, ...page] : page)
+				setResultScope(catalog.scope)
 				setTotal(result.total)
 				setMetadata(result.metadata)
 				if (mode === 'Catalog' && category === 'albums' && config.query && catalog.runtime.library.albumStatus) {
@@ -72,6 +75,7 @@ export default function Search() {
 		await AsyncStorage.setItem('search.history', JSON.stringify([...next, ...old.filter(h => typeof h !== 'string')]))
 	}
 	const change = (setter, value) => { setOffset(0); setItems([]); setTotal(0); setMetadata(null); setPopMetadata(null); setter(value) }
+	const visibleItems = resultScope === catalog.scope ? items : []
 	return <View style={[mainStyles.mainContainer(theme), mainStyles.contentMainContainer(insets), { paddingBottom: 0 }]}>
 		<CatalogText title style={{ padding: 20 }}>Search</CatalogText>
 		<View style={{ paddingHorizontal: 20, gap: 12 }}>
@@ -84,9 +88,9 @@ export default function Search() {
 			{!query && history.map(h => <CatalogButton key={h} onPress={() => change(setQuery, h)}>{h}</CatalogButton>)}
 			{error ? <CatalogText>{error}</CatalogText> : null}
 			<MetadataNote metadata={metadata} /><MetadataNote metadata={popMetadata} label="ListenBrainz totals" />
-			{mode === 'Catalog' ? items.map(i => <Row key={i.mbid || i.releaseGroupMbid || i.recordingMbid} item={i} />) : category === 'artists' ? <HorizontalArtists artists={items} /> : category === 'albums' ? <HorizontalAlbums albums={items} /> : <SongsList songs={items} />}
-			{busy ? <ActivityIndicator color={theme.primaryTouch} /> : query.length > 1 && !items.length && !error ? <CatalogText>No results</CatalogText> : null}
-			{items.length > 0 && offset + 25 < total ? <CatalogButton disabled={busy} onPress={() => setOffset(offset + 25)}>Load more</CatalogButton> : null}
+			{mode === 'Catalog' ? visibleItems.map(i => <Row key={i.mbid || i.releaseGroupMbid || i.recordingMbid} item={i} />) : category === 'artists' ? <HorizontalArtists artists={visibleItems} /> : category === 'albums' ? <HorizontalAlbums albums={visibleItems} /> : <SongsList songs={visibleItems} />}
+			{busy ? <ActivityIndicator color={theme.primaryTouch} /> : query.length > 1 && !visibleItems.length && !error ? <CatalogText>No results</CatalogText> : null}
+			{visibleItems.length > 0 && offset + 25 < total ? <CatalogButton disabled={busy} onPress={() => setOffset(offset + 25)}>Load more</CatalogButton> : null}
 		</ScrollView>
 	</View>
 }

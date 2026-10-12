@@ -34,3 +34,8 @@ test('ListenBrainz outages leave metrics unavailable without losing catalog data
 	const lb = createListenBrainz({ request: async () => { throw new Error('offline') }, cache })
 	expect(await lb.counts('artist', ['a'])).toMatchObject({ items: {}, unavailable: true })
 })
+
+test('edition tracklist retains medium format for Lidarr audio selection', async () => {
+ const mb = createMusicBrainz({ cache, request: async () => ({ id: 'r', title: 'Edition', 'release-group': group, media: [{ position: 2, format: 'DVD', tracks: [{ id: 'v', position: 1, title: 'Video', recording: { id: 'rec' } }] }] }) })
+ expect((await mb.release('r')).tracks[0]).toMatchObject({ mediumFormat: 'DVD', disc: 2 })
+})

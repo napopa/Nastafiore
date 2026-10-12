@@ -5,6 +5,8 @@ export const trackFromMB = item => ({ kind: 'track', recordingMbid: item.id, tit
 export const popularity = item => ({ listens: item?.total_listen_count ?? null, listeners: item?.total_user_count ?? null })
 export const normalized = text => String(text || '').normalize('NFKC').toLowerCase().replace(/[^\p{L}\p{N}]/gu, '')
 export const specialRelease = album => album?.releaseType === 'Single' || album?.releaseType === 'EP' || album?.secondaryTypes?.includes('Compilation') || album?.releaseType === 'Compilation'
+const nonAudioMedia = new Set(['DVD', 'DVD-Video', 'Blu-ray', 'HD-DVD', 'VCD', 'SVCD', 'UMD', 'VHS'])
+export const audioEdition = edition => ({ ...edition, tracks: (edition.tracks || []).filter(t => !nonAudioMedia.has(t.mediumFormat) && t.title !== '[data track]') })
 
 const matchesTrack = (track, song, albumArtist) => {
 	if (!song.id || song.isDir) return false

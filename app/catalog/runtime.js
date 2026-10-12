@@ -27,6 +27,7 @@ export const validateIntegration = integration => {
 export const lidarrConnection = integration => createLidarr(createJsonClient({ baseUrl: `${integration.lidarrUrl.replace(/\/+$/, '')}/api/v1`, headers: { 'X-Api-Key': integration.apiKey } }))
 
 export const createCatalogRuntime = (config, integration, callbacks = {}) => {
+	const scope = integrationScope(config)
 	const localRequest = config?.url && config?.query ? createJsonClient({ baseUrl: config.url.replace(/\/+$/, '') }) : null
 	const library = createLibrary(async (path, query, signal) => {
 		if (!localRequest) throw new Error('Connect to Navidrome to check availability')
@@ -34,6 +35,10 @@ export const createCatalogRuntime = (config, integration, callbacks = {}) => {
 		const raw = await localRequest(`/rest/${path}?${config.query}&f=json&${params}`, { signal })
 		const response = raw['subsonic-response']
 		if (!response || response.error || response.status !== 'ok') throw new Error('Navidrome metadata is unavailable')
+		const scoped = item => ({ ...item, catalogScope: scope })
+		if (response.song) response.song = scoped(response.song)
+		if (response.album?.song) response.album = { ...response.album, song: response.album.song.map(scoped) }
+		if (response.searchResult3?.song) response.searchResult3 = { ...response.searchResult3, song: response.searchResult3.song.map(scoped) }
 		return response
 	})
 	const lbRequest = createJsonClient({ baseUrl: 'https://api.listenbrainz.org/1', headers: integration?.listenBrainzToken ? { Authorization: `Token ${integration.listenBrainzToken}` } : {} })

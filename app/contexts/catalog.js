@@ -48,9 +48,10 @@ export const CatalogProvider = ({ children, store = integrationStore, runtimeFac
 			finally { busy = false }
 		}
 		const timer = setInterval(tick, 30000)
-		const appSubscription = AppState.addEventListener('change', tick)
-		if (Platform.OS === 'web' && typeof document !== 'undefined') document.addEventListener('visibilitychange', tick)
-		return () => { disposed = true; clearInterval(timer); appSubscription.remove(); if (Platform.OS === 'web' && typeof document !== 'undefined') document.removeEventListener('visibilitychange', tick) }
+		const activityChanged = () => { if (foreground()) tick(); else controller.cancelPolling?.() }
+		const appSubscription = AppState.addEventListener('change', activityChanged)
+		if (Platform.OS === 'web' && typeof document !== 'undefined') document.addEventListener('visibilitychange', activityChanged)
+		return () => { disposed = true; controller.cancelPolling?.(); clearInterval(timer); appSubscription.remove(); if (Platform.OS === 'web' && typeof document !== 'undefined') document.removeEventListener('visibilitychange', activityChanged) }
 	}, [runtime, scope])
 	const saveIntegration = async value => {
 		const clean = validateIntegration(value)
@@ -103,7 +104,7 @@ export const CatalogProvider = ({ children, store = integrationStore, runtimeFac
 		const updated = await runtime.acquisition?.refresh(record.groupId)
 		if (updated && scope === currentScope.current) setRequest({ scope, phase: 'status', record: updated })
 	}
-	const play = items => { if (items?.length && items.every(i => i?.id && !i.kind)) playSong(config, songDispatch, items, 0) }
+	const play = items => { if (items?.length && items.every(i => i?.id && !i.kind && i.catalogScope === scope)) playSong(config, songDispatch, items, 0) }
 	const visible = request?.scope === scope ? request : null
 	const liveRecord = visible?.record ? (records.scope === scope ? records.items.find(r => r.groupId === visible.record.groupId) : null) || visible.record : null
 	return <CatalogContext.Provider value={{ scope, runtime, integration, ready: loaded?.scope === scope, records: records.scope === scope ? records.items : [], saveIntegration, disconnect, openRequest, showRequest: record => { setRequest({ scope, phase: 'status', record }); refresh(record).catch(() => {}) }, play }}>

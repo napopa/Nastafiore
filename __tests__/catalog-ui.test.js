@@ -74,3 +74,18 @@ test('status sheet offers Play only after verified import and exposes manual ret
 	fireEvent.press(view.getByText('Play'))
 	expect(onPlay).toHaveBeenCalledTimes(1)
 })
+
+test('server switch clears prior playable results and resets pagination', async () => {
+ const { getApi } = require('../app/utils/api')
+ getApi.mockImplementation(async (_config, _path, params) => ({ searchResult3: { song: Array.from({ length: 25 }, (_v, n) => ({ id: `A${params.songOffset + n}` })) } }))
+ const first = context()
+ const view = render(wrap(first, <Search />))
+ fireEvent.press(view.getByText('Tracks'))
+ fireEvent.changeText(view.getByPlaceholderText('Search library'), 'Song')
+ fireEvent.press(await view.findByText('Load more'))
+ await waitFor(() => expect(getApi).toHaveBeenLastCalledWith(expect.anything(), 'search3', expect.objectContaining({ songOffset: 25 })))
+ getApi.mockClear()
+ view.rerender(wrap(context({ scope: 'b' }), <Search />))
+ expect(view.UNSAFE_getByType(require('../app/components/lists/SongsList')).props.songs).toEqual([])
+ await waitFor(() => expect(getApi).toHaveBeenCalledWith(expect.anything(), 'search3', expect.objectContaining({ songOffset: 0 })))
+})

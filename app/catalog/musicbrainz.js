@@ -52,7 +52,7 @@ export const createMusicBrainz = ({ request, cache }) => {
 			const packet = await read(`release/${id}`, { inc: 'recordings+artist-credits+release-groups+media' }, signal)
 			const r = packet.data
 			const group = albumFromMB({ ...r['release-group'], 'artist-credit': r['artist-credit'] })
-			return { ...group, releaseMbid: r.id, editionTitle: r.title, editionDate: r.date, country: r.country, status: r.status, tracks: (r.media || []).flatMap(m => (m.tracks || []).map(t => ({ ...trackFromMB({ ...t.recording, title: t.title || t.recording?.title, 'artist-credit': t['artist-credit'] || t.recording?.['artist-credit'] || r['artist-credit'], length: t.length ?? t.recording?.length }), trackMbid: t.id, position: t.position, disc: m.position, releaseMbid: r.id, releaseGroupMbid: group.releaseGroupMbid }))), metadata: stamp(packet) }
+			return { ...group, releaseMbid: r.id, editionTitle: r.title, editionDate: r.date, country: r.country, status: r.status, tracks: (r.media || []).flatMap(m => (m.tracks || []).map(t => ({ ...trackFromMB({ ...t.recording, title: t.title || t.recording?.title, 'artist-credit': t['artist-credit'] || t.recording?.['artist-credit'] || r['artist-credit'], length: t.length ?? t.recording?.length }), trackMbid: t.id, position: t.position, disc: m.position, mediumFormat: m.format, releaseMbid: r.id, releaseGroupMbid: group.releaseGroupMbid }))), metadata: stamp(packet) }
 		},
 		async containingAlbums(recordingId, signal) {
 			const result = await browse('release', { recording: recordingId, inc: 'release-groups+artist-credits' }, 'releases', signal)

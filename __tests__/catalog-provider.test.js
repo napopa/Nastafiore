@@ -43,3 +43,18 @@ test('server/user switch hides old credentials immediately and discards delayed 
 	expect(view.queryByText('old-key')).toBeNull()
 	mockConfig = { ...mockConfig, username: 'a' }
 })
+test('catalog playback rejects stale local matches after a server switch', async () => {
+ const { integrationScope } = require('../app/catalog/integrations')
+ const oldScope = integrationScope(mockConfig)
+ const Probe = () => { const catalog = useCatalog(); return <Pressable onPress={() => catalog.play([{ id: 'old-item', catalogScope: oldScope }])}><Text>Play old item</Text></Pressable> }
+ const store = { load: async () => null }, factory = () => ({ acquisition: null })
+ const view = render(<CatalogProvider store={store} runtimeFactory={factory}><Probe /></CatalogProvider>)
+ await waitFor(() => expect(view.getByText('Play old item')).toBeTruthy())
+ mockConfig = { ...mockConfig, username: 'different-user' }
+ view.rerender(<CatalogProvider store={store} runtimeFactory={factory}><Probe /></CatalogProvider>)
+ playSong.mockClear()
+ fireEvent.press(view.getByText('Play old item'))
+ expect(playSong).not.toHaveBeenCalled()
+ mockConfig = { ...mockConfig, username: 'a' }
+ view.unmount()
+})

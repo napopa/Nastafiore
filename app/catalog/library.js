@@ -27,7 +27,13 @@ export const createLibrary = read => {
 			return { ...track, local, availability: local ? 'Available' : 'Missing' }
 		},
 		async albumsFor(album, signal) {
-			const candidates = (await search(album.title, 'album', signal)).filter(a => normalized(a.name || a.title) === normalized(album.title) && (!album.artist?.name || normalized(a.artist) === normalized(album.artist.name)))
+			const titles = [...new Set([album.title, album.editionTitle].filter(Boolean))]
+			const found = (await Promise.all(titles.map(title => search(title, 'album', signal)))).flat()
+			const candidates = [...new Map(found.filter(a => {
+				const releaseId = a.musicBrainzReleaseId || a.mbzReleaseId || a.musicBrainzId
+				if (album.releaseMbid && releaseId) return releaseId === album.releaseMbid
+				return titles.some(title => normalized(a.name || a.title) === normalized(title)) && (!album.artist?.name || normalized(a.artist) === normalized(album.artist.name))
+			}).map(a => [a.id, a])).values()]
 			const result = []
 			for (const candidate of candidates) result.push((await read('getAlbum', { id: candidate.id }, signal)).album)
 			return result.filter(Boolean)

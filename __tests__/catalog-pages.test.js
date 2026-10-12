@@ -37,3 +37,12 @@ test('artist preserves local biography and groups full discography by release ty
 	expect(view.getByText('Discography · Album')).toBeTruthy()
 	expect(view.getByText('Discography · Single')).toBeTruthy()
 })
+
+test('artist metadata renders before unavailable Navidrome hydration completes', async () => {
+ const never = () => new Promise(() => {})
+ const value = { runtime: { mb: { artist: async () => artist, discography: async () => ({ items: [album] }) }, lb: { counts: async () => ({ items: {} }), topTracks: async () => ({ items: [{ kind: 'track', recordingMbid: 'r', title: 'Popular Song', artist }] }) }, library: { artist: never, track: never } }, play: jest.fn(), openRequest: jest.fn() }
+ const view = render(<CatalogContext.Provider value={value}><Artist route={{ params: { artist } }} /></CatalogContext.Provider>)
+ await waitFor(() => expect(view.getByText('Discography · Album')).toBeTruthy())
+ expect(view.getByText('Popular Song')).toBeTruthy()
+ view.unmount()
+})

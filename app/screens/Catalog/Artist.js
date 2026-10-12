@@ -27,11 +27,21 @@ export default function Artist({ route: { params } }) {
 		setBusy(true); setError(''); setData(null); setAlbumStatuses({}); checkedAlbums.current = new Set(); setVisibleCounts({})
 		;(async () => {
 			try {
-				const [artist, discography, top, artistCounts] = await Promise.all([catalog.runtime.mb.artist(selected.mbid, controller.signal), catalog.runtime.mb.discography(selected.mbid, controller.signal), catalog.runtime.lb.topTracks(selected.mbid, controller.signal), catalog.runtime.lb.counts('artist', [selected.mbid], controller.signal)])
-				const [localArtist, albumCounts] = await Promise.all([catalog.runtime.library.artist(artist, controller.signal).catch(() => artist), catalog.runtime.lb.counts('release-group', discography.items.map(a => a.releaseGroupMbid), controller.signal)])
-				const tracks = []
-				for (const track of top.items.slice(0, 50)) tracks.push(await catalog.runtime.library.track(track, controller.signal).catch(() => ({ ...track, availability: null })))
-				if (!controller.signal.aborted) setData({ artist: localArtist, albums: discography.items.map(a => ({ ...a, popularity: albumCounts.items[a.releaseGroupMbid] })), tracks, popularity: artistCounts.items[selected.mbid], metadata: discography.metadata, popMetadata: top.metadata || artistCounts.metadata, rankingUnavailable: top.unavailable })
+				const [artist, discography] = await Promise.all([catalog.runtime.mb.artist(selected.mbid, controller.signal), catalog.runtime.mb.discography(selected.mbid, controller.signal)])
+				if (controller.signal.aborted) return
+				setData({ artist, albums: discography.items, tracks: [], popularity: null, metadata: discography.metadata })
+				setBusy(false)
+				catalog.runtime.library.artist(artist, controller.signal).then(localArtist => {
+					if (!controller.signal.aborted) setData(previous => ({ ...previous, artist: localArtist }))
+				}).catch(() => {})
+				const [top, artistCounts, albumCounts] = await Promise.all([catalog.runtime.lb.topTracks(selected.mbid, controller.signal), catalog.runtime.lb.counts('artist', [selected.mbid], controller.signal), catalog.runtime.lb.counts('release-group', discography.items.map(a => a.releaseGroupMbid), controller.signal)])
+				if (controller.signal.aborted) return
+				const tracks = top.items.slice(0, 50).map(t => ({ ...t, availability: null, local: null }))
+				setData(previous => ({ ...previous, albums: discography.items.map(a => ({ ...a, popularity: albumCounts.items[a.releaseGroupMbid] })), tracks, popularity: artistCounts.items[selected.mbid], popMetadata: top.metadata || artistCounts.metadata, rankingUnavailable: top.unavailable }))
+				for (let offset = 0; offset < tracks.length && !controller.signal.aborted; offset += 4) {
+					const batch = await Promise.all(tracks.slice(offset, offset + 4).map(track => catalog.runtime.library.track(track, controller.signal).catch(() => track)))
+					if (!controller.signal.aborted) setData(previous => ({ ...previous, tracks: previous.tracks.map(track => batch.find(t => t.recordingMbid === track.recordingMbid) || track) }))
+				}
 			} catch (failure) { if (!controller.signal.aborted) setError(failure.message) }
 			finally { if (!controller.signal.aborted) setBusy(false) }
 		})()

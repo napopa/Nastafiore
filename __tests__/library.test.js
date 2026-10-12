@@ -33,3 +33,11 @@ test('catalog album availability verifies local edition identity rather than tit
 	mb.release = async () => ({ ...group, releaseGroupMbid: 'other', releaseMbid: 'edition', tracks: [] })
 	expect((await library.albumStatus(group, mb)).availability).toBe('Missing')
 })
+
+test('explicit edition identity survives differing release and group titles', async () => {
+ const edition = { title: 'Album', editionTitle: 'Album (Deluxe Edition)', releaseMbid: 'edition', artist: { name: 'Artist' }, tracks: [{ position: 1, recordingMbid: 'rec' }] }
+ const local = { id: 'local', name: 'Album (Deluxe Edition)', artist: 'Alternate credit', musicBrainzId: 'edition', song: [{ id: 'song', track: 1, musicBrainzId: 'rec' }] }
+ const read = jest.fn(async (path, query) => path === 'search3' ? { searchResult3: { album: query.query === edition.editionTitle ? [local] : [] } } : { album: local })
+ expect(await createLibrary(read).match(edition)).toMatchObject({ availability: 'Available', local: { id: 'local' } })
+ expect(read).toHaveBeenCalledWith('search3', expect.objectContaining({ query: edition.editionTitle }), undefined)
+})

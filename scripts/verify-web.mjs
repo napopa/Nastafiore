@@ -7,7 +7,7 @@ await fs.mkdir(artifactDir, { recursive: true })
 const browser = await chromium.launch({ executablePath: process.env.CASTAFIORE_CHROME || '/opt/google/chrome/chrome', headless: process.env.CASTAFIORE_HEADLESS !== 'false', args: ['--ozone-platform=wayland'] })
 const context = await browser.newContext({ viewport: { width: 390, height: 844 }, serviceWorkers: 'block' })
 const page = await context.newPage()
-const failures = [], writes = [], categories = []
+const failures = [], writes = [], categories = [], streams = []
 page.on('pageerror', error => failures.push(error.message))
 const artist = { id: 'a', name: 'Mock Artist', type: 'Group', country: 'GB', disambiguation: 'Test artist' }
 const group = { id: 'g', title: 'Mock Album', 'primary-type': 'Album', 'secondary-types': [], 'first-release-date': '2020', 'artist-credit': [{ artist }] }
@@ -79,6 +79,7 @@ await page.route('https://nav.mock/**', async route => {
 	if (path === 'getPlaylist') return subsonic({ playlist: { id: 'playlist', name: 'Mock playlist', songCount: 1, entry: [localSong(1)] } })
 	if (path === 'getCoverArt') return route.fulfill({ status: 404 })
 	if (path === 'stream') {
+		streams.push(url.searchParams.get('id'))
 		const wave = Buffer.alloc(44 + 16000)
 		wave.write('RIFF'); wave.writeUInt32LE(wave.length - 8, 4); wave.write('WAVEfmt ', 8); wave.writeUInt32LE(16, 16); wave.writeUInt16LE(1, 20); wave.writeUInt16LE(1, 22); wave.writeUInt32LE(8000, 24); wave.writeUInt32LE(16000, 28); wave.writeUInt16LE(2, 32); wave.writeUInt16LE(16, 34); wave.write('data', 36); wave.writeUInt32LE(16000, 40)
 		return route.fulfill({ contentType: 'audio/wav', body: wave })
@@ -108,7 +109,9 @@ try {
 	await page.getByRole('button', { name: 'Check status', exact: true }).click()
 	await expect(page.getByText('Available', { exact: true })).toBeVisible({ timeout: 10000 })
 	await page.screenshot({ path: `${artifactDir}/request-imported-phone.png`, fullPage: true })
+	expect(streams).toEqual([])
 	await page.getByRole('button', { name: 'Play', exact: true }).click()
+	await expect.poll(() => streams.includes('local-1')).toBe(true)
 	await expect(page.getByText('Mock Song 1', { exact: true }).last()).toBeVisible()
 	const allTabs = []
 	for (const tab of ['Home', 'Playlists', 'Settings', 'Search']) { await page.getByText(tab, { exact: true }).last().click(); allTabs.push(tab) }
@@ -123,5 +126,5 @@ try {
 	const overflow = await page.evaluate(() => document.documentElement.scrollWidth > innerWidth)
 	expect(overflow).toBe(false)
 	expect(failures).toEqual([])
-	console.log(JSON.stringify({ result: 'passed', browser: 'isolated Playwright Chrome', categories, writes, allTabs, overflow, pageErrors: failures, artifacts: artifactDir }))
+	console.log(JSON.stringify({ result: 'passed', browser: 'isolated Playwright Chrome', categories, writes, streams, allTabs, overflow, pageErrors: failures, artifacts: artifactDir }))
 } catch (error) { await page.screenshot({ path: `${artifactDir}/failure.png`, fullPage: true }); await fs.writeFile(`${artifactDir}/failure.txt`, await page.locator('body').innerText()); throw error } finally { await browser.close() }

@@ -171,3 +171,55 @@ test('Lidarr adapter uses target-only monitor and manual search resources', asyn
 		['/command', { method: 'POST', body: { name: 'AlbumSearch', albumIds: [9] } }],
 	])
 })
+
+test('uncertain search with expired history verifies imported edition without replay', async () => {
+ const f = fixture()
+ await f.acquisition.submit(await f.acquisition.review(album, settings))
+ await f.journal.save([{ groupId: 'group', catalog: album, stage: 'Uncertain', albumId: 9, searchStartedAt: Date.now(), operation: { kind: 'search' } }])
+ f.setCommand(null)
+ f.setTracks([1, 2].map(n => ({ hasFile: true, foreignTrackId: `t${n}` })))
+ f.setAvailable(true)
+ const restored = createAcquisition({ lidarr: f.lidarr, mb: f.mb, library: f.library, journal: f.journal })
+ expect(await restored.refresh('group')).toMatchObject({ stage: 'Available', operation: null })
+ expect(f.lidarr.search).toHaveBeenCalledTimes(1)
+})
+test('metadata profile accepts any enabled secondary type like Lidarr', async () => {
+ const f = fixture()
+ const lookup = (await f.lidarr.lookupAlbum())[0]
+ lookup.secondaryTypes = ['Live', 'Compilation']
+ const current = await f.lidarr.settings()
+ f.lidarr.settings = async () => ({ ...current, metadata: [{ ...profile, secondaryAlbumTypes: [{ albumType: { name: 'Live' }, allowed: true }, { albumType: { name: 'Compilation' }, allowed: false }] }] })
+ await expect(f.acquisition.review(album, settings)).resolves.toMatchObject({ metadataProfileId: 2 })
+})
+test('audio import completes while bonus video and data remain in catalog tracklist', async () => {
+ const f = fixture()
+ await f.acquisition.submit(await f.acquisition.review(album, settings))
+ f.setTracks([1, 2].map(n => ({ hasFile: true, foreignTrackId: `t${n}` })))
+ f.mb.release = async () => ({ ...edition, tracks: [...edition.tracks, { trackMbid: 'video', disc: 2, mediumFormat: 'DVD' }, { trackMbid: 'data', title: '[data track]', disc: 1 }] })
+ f.library.match = jest.fn(async acquired => ({ availability: acquired.tracks.length === 2 ? 'Available' : 'Missing', tracks: acquired.tracks.map(t => ({ ...t, local: { id: t.trackMbid } })) }))
+ expect((await f.acquisition.refresh('group')).stage).toBe('Available')
+ expect(f.library.match.mock.calls[0][0].tracks).toHaveLength(2)
+})
+test('foreground cancellation stops retry and queue pagination without changing saved state', async () => {
+ const { createJsonClient } = require('../app/catalog/transport')
+ let active = true, sleeping
+ const pause = new Promise(resolve => { sleeping = resolve })
+ const fetchImpl = jest.fn(async () => ({ ok: false, status: 503, headers: { get: () => null } }))
+ const lidarr = createLidarr(createJsonClient({ baseUrl: 'https://lidarr.test', fetchImpl, sleep: () => pause }))
+ const journal = { load: async () => [{ groupId: 'group', catalog: album, stage: 'Searching' }], save: jest.fn() }
+ const controller = createAcquisition({ lidarr, mb: {}, library: {}, journal, isActive: () => active })
+ const pending = controller.refresh('group')
+ await new Promise(resolve => setTimeout(resolve, 0))
+ active = false
+ controller.cancelPolling?.()
+ sleeping()
+ await pending
+ expect(fetchImpl).toHaveBeenCalledTimes(1)
+ expect(journal.save).not.toHaveBeenCalled()
+})
+test('queue pagination stops after polling cancellation', async () => {
+ const abort = new AbortController()
+ const request = jest.fn(async () => { abort.abort(); return { records: [{ id: 1 }], totalRecords: 150 } })
+ await expect(createLidarr(request).queue(abort.signal)).rejects.toMatchObject({ name: 'AbortError' })
+ expect(request).toHaveBeenCalledTimes(1)
+})
