@@ -51,5 +51,6 @@
     "patch-package": "^8.0.0",
     "workbox-cli": "^7.3.0"
   },
-  "private": true
+  "private": true,
+  "license": "GPL-3.0-only"
 }
