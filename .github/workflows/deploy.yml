@@ -21,8 +21,12 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
+  security:
+    uses: ./.github/workflows/security.yml
+
   # Build job
   build:
+    needs: security
     runs-on: ubuntu-latest
     steps:
       - name: Checkout

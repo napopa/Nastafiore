@@ -46,3 +46,31 @@ dist
 *.swp
 
 docker-compose.override.yml
+
+# Private configuration, signing material and generated evidence
+.env
+.env.*
+!.env.example
+!.env.*.example
+**/signing.properties
+**/key.properties
+credentials.json
+secrets.json
+*.keystore
+*.pfx
+*.log
+*.sqlite
+*.sqlite3
+*.sqlite-*
+*.db
+RKStorage
+SecureStore.xml
+*.tar.gz
+*.tgz
+.secrets/
+.credentials/
+.superpowers/
+artifacts/
+verification/
+__pycache__/
+*.pyc
