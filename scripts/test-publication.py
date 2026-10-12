@@ -54,7 +54,7 @@ class PublicationChecks(unittest.TestCase):
             self.assertTrue(publication.inspect_blob('app/config.js', url))
 
     def test_signing_and_credential_files_cannot_be_force_added(self):
-        for path in ['signing.properties', 'credentials.json', '.env.production', 'private.jks']:
+        for path in ['signing.properties', 'credentials.json', '.env.production', 'private.jks', 'credentials.sqlite3', 'config.db', 'runtime.log', 'verification/settings.png']:
             self.assertTrue(publication.inspect_blob(path, b'dummy'))
         self.assertEqual(publication.inspect_blob('.env.example', b''), [])
 

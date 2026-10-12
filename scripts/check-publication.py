@@ -13,7 +13,7 @@ ROOT = Path(subprocess.check_output(['git', 'rev-parse', '--show-toplevel'], tex
 URL = re.compile(rb'https?://(?P<userinfo>[^\s\x00\'"<>/@]+@)?(?P<host>[A-Za-z0-9.-]+)\b')
 CREDENTIAL = re.compile(rb'(?i)(password|api[_-]?key|listenbrainztoken|access[_-]?token|secret)[\'\"]?\s*[:=]\s*[\'\"]([^\'\"\r\n]+)[\'\"]')
 FIXTURE_VALUES = {'demo', 'key', 'private', 'private-key', 'old-key', 'top-secret', 'test-secret', 'session', 'lb-private', 'public-token', 'dummy-test-key', 'dummy-native-key'}
-PRIVATE_FILE = re.compile(r'(^|/)(?:signing\.properties|key\.properties|credentials\.json|secrets\.json|RKStorage|SecureStore\.xml)$|\.(?:jks|keystore|p12|pfx|pem|key)$', re.I)
+PRIVATE_FILE = re.compile(r'(^|/)(?:signing\.properties|key\.properties|credentials\.json|secrets\.json|RKStorage|SecureStore\.xml)$|\.(?:jks|keystore|p12|pfx|pem|key|log|sqlite(?:3)?(?:-\w+)?|db(?:-\w+)?)$|^(?:verification|artifacts|\.superpowers|\.secrets|\.credentials)/', re.I)
 PUBLIC_HOSTS = {line.strip() for line in (POLICY_ROOT / 'scripts/public-url-hosts.txt').read_text().splitlines() if line.strip() and not line.startswith('#')}
 
 
