@@ -7,7 +7,7 @@ const stamp = result => ({ updatedAt: result.updatedAt, stale: result.stale })
 export const createMusicBrainz = ({ request, cache }) => {
 	const read = (entity, query, signal) => {
 		const path = `/${entity}?${queryString({ ...query, fmt: 'json' })}`
-		return cache.read(`mb:${path}`, () => request(path, { signal }))
+		return cache.read(`mb:${path}`, loadSignal => request(path, { signal: loadSignal }), { signal })
 	}
 	const browse = async (entity, query, listKey, signal) => {
 		let items = [], offset = 0, total = Infinity, metadata

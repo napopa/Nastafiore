@@ -1,6 +1,6 @@
 const credit = item => (item['artist-credit'] || []).filter(c => c.artist).map(c => artistFromMB(c.artist))
 export const artistFromMB = item => ({ kind: 'artist', mbid: item.id, name: item.name, disambiguation: item.disambiguation || '', country: item.country, type: item.type, lifeSpan: item['life-span'], popularity: null, local: null })
-export const albumFromMB = item => ({ kind: 'album', releaseGroupMbid: item.id, title: item.title, artist: credit(item)[0] || null, artists: credit(item), date: item['first-release-date'] || '', releaseType: item['primary-type'] || 'Other', secondaryTypes: item['secondary-types'] || [], disambiguation: item.disambiguation || '', popularity: null, availability: 'Missing', local: null })
+export const albumFromMB = item => ({ kind: 'album', releaseGroupMbid: item.id, title: item.title, artist: credit(item)[0] || null, artists: credit(item), date: item['first-release-date'] || '', releaseType: item['primary-type'] || 'Other', secondaryTypes: item['secondary-types'] || [], disambiguation: item.disambiguation || '', popularity: null, availability: null, local: null })
 export const trackFromMB = item => ({ kind: 'track', recordingMbid: item.id, title: item.title, artist: credit(item)[0] || null, duration: item.length, popularity: null, availability: 'Missing', local: null })
 export const popularity = item => ({ listens: item?.total_listen_count ?? null, listeners: item?.total_user_count ?? null })
 export const normalized = text => String(text || '').normalize('NFKC').toLowerCase().replace(/[^\p{L}\p{N}]/gu, '')

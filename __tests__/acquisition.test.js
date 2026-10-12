@@ -4,7 +4,7 @@ import { createLidarr } from '../app/catalog/lidarr'
 const album = { kind: 'album', releaseGroupMbid: 'group', title: 'Album', artist: { mbid: 'artist', name: 'Artist' }, releaseType: 'Album', secondaryTypes: [] }
 const settings = { rootFolderPath: '/music', qualityProfileId: 1, metadataProfileId: 2 }
 const profile = { id: 2, name: 'Standard', primaryAlbumTypes: [{ albumType: { name: 'Album' }, allowed: true }], secondaryAlbumTypes: [{ albumType: { name: 'Studio' }, allowed: true }], releaseStatuses: [{ releaseStatus: { name: 'Official' }, allowed: true }] }
-const edition = { ...album, releaseMbid: 'release', tracks: [1, 2].map(n => ({ trackMbid: `t${n}`, recordingMbid: `r${n}`, position: n, disc: 1 })) }
+const edition = { ...album, releaseMbid: 'release', editionDate: '2021', country: 'GB', editionTitle: 'Acquired edition', tracks: [1, 2].map(n => ({ trackMbid: `t${n}`, recordingMbid: `r${n}`, position: n, disc: 1 })) }
 const fixture = (existing = null) => {
 	let artists = existing ? [existing] : [], remote = null, command = null, queue = [], tracks = []
 	const lookup = { foreignAlbumId: 'group', title: 'Album', albumType: 'Album', secondaryTypes: [], artist: { foreignArtistId: 'artist', artistName: 'Artist' }, releases: [{ foreignReleaseId: 'release', status: 'Official', trackCount: 2, monitored: true }] }
@@ -118,7 +118,9 @@ test('download completion, a discovery track and wrong acquired edition cannot e
 	f.setAvailable(false)
 	expect((await f.acquisition.refresh('group')).stage).toBe('Waiting for Navidrome')
 	f.setAvailable(true)
-	expect((await f.acquisition.refresh('group')).stage).toBe('Available')
+	const completed = await f.acquisition.refresh('group')
+	expect(completed.stage).toBe('Available')
+	expect(completed.acquiredEdition).toMatchObject({ releaseMbid: 'release', editionDate: '2021', country: 'GB' })
 })
 test('paused/background app performs no acquisition polling', async () => {
 	const f = fixture()
@@ -126,6 +128,38 @@ test('paused/background app performs no acquisition polling', async () => {
 	f.lidarr.queue = jest.fn(async () => [])
 	await controller.refresh('group')
 	expect(f.lidarr.queue).not.toHaveBeenCalled()
+})
+test('foreground changes during a read stop the next polling requests', async () => {
+	const f = fixture()
+	await f.acquisition.submit(await f.acquisition.review(album, settings))
+	let active = true
+	const original = f.lidarr.album
+	f.lidarr.album = async id => { active = false; return original(id) }
+	f.lidarr.queue = jest.fn(async () => [])
+	const controller = createAcquisition({ lidarr: f.lidarr, mb: f.mb, library: f.library, journal: f.journal, isActive: () => active })
+	await controller.refresh('group')
+	expect(f.lidarr.queue).not.toHaveBeenCalled()
+})
+test('a partial import is reported separately from search with no source', async () => {
+	const f = fixture()
+	await f.acquisition.submit(await f.acquisition.review(album, settings))
+	f.setCommand({ id: 5, status: 'completed' })
+	f.setTracks([{ hasFile: true, foreignTrackId: 't1' }, { hasFile: false, foreignTrackId: 't2' }])
+	expect((await f.acquisition.refresh('group')).stage).toBe('Partial import')
+})
+test('a crash between preparation steps leaves a manual retry instead of freezing forever', async () => {
+	const f = fixture()
+	await f.journal.save([{ groupId: 'group', catalog: album, stage: 'Preparing', artistId: 1, operation: null }])
+	const controller = createAcquisition({ lidarr: f.lidarr, mb: f.mb, library: f.library, journal: f.journal, isActive: () => true })
+	expect((await controller.list())[0].stage).toBe('Failed')
+})
+test('expired command history cannot hide a completed import', async () => {
+	const f = fixture()
+	await f.acquisition.submit(await f.acquisition.review(album, settings))
+	f.lidarr.command = async () => { throw Object.assign(new Error('gone'), { status: 404 }) }
+	f.setTracks([1, 2].map(n => ({ hasFile: true, foreignTrackId: `t${n}` })))
+	f.setAvailable(true)
+	expect((await f.acquisition.refresh('group')).stage).toBe('Available')
 })
 test('Lidarr adapter uses target-only monitor and manual search resources', async () => {
 	const request = jest.fn(async () => [])

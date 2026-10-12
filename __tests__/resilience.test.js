@@ -56,3 +56,29 @@ test('expired metadata survives outage with update time; TTL is seven days or 24
 	await cache.read('pop', load, { popularity: true })
 	expect(load).toHaveBeenCalledTimes(3)
 })
+test('a cancelled sole reader aborts the network and is not retried', async () => {
+	let aborted = false
+	const fetchImpl = jest.fn((_url, { signal }) => new Promise((_resolve, reject) => signal.addEventListener('abort', () => { aborted = true; reject(new Error('cancelled')) })))
+	const client = createJsonClient({ baseUrl: 'https://example.org', fetchImpl })
+	const controller = new AbortController()
+	const request = client('/cancel', { signal: controller.signal }).catch(e => e.name)
+	controller.abort()
+	expect(await request).toBe('AbortError')
+	expect(aborted).toBe(true)
+	expect(fetchImpl).toHaveBeenCalledTimes(1)
+})
+test('cancelling one metadata reader leaves another reader on the same cache load usable', async () => {
+	let finish
+	const storage = { getItem: async () => null, setItem: async () => {} }
+	const cache = createMetadataCache(storage)
+	const loader = jest.fn(signal => new Promise((resolve, reject) => { finish = resolve; signal?.addEventListener('abort', () => reject(Object.assign(new Error('cancelled'), { name: 'AbortError' }))) }))
+	const controller = new AbortController()
+	const a = cache.read('shared', loader, { signal: controller.signal }).catch(e => e.name)
+	const b = cache.read('shared', loader)
+	await Promise.resolve()
+	controller.abort()
+	finish({ ok: true })
+	expect(await a).toBe('AbortError')
+	expect((await b).data).toEqual({ ok: true })
+	expect(loader).toHaveBeenCalledTimes(1)
+})

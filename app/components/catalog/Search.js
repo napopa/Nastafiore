@@ -2,6 +2,7 @@ import React from 'react'
 import { View, TextInput, ScrollView, ActivityIndicator } from 'react-native'
 import AsyncStorage from '@react-native-async-storage/async-storage'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
+import { useNavigation } from '@react-navigation/native'
 import { useConfig } from '~/contexts/config'
 import { useTheme } from '~/contexts/theme'
 import { useCatalog } from '~/contexts/catalog'
@@ -15,6 +16,7 @@ import { CatalogText, CatalogButton, Choices, MetadataNote } from './ui'
 
 export default function Search() {
 	const config = useConfig(), theme = useTheme(), catalog = useCatalog(), insets = useSafeAreaInsets()
+	const navigation = useNavigation()
 	const [mode, setMode] = React.useState('Library'), [category, setCategory] = React.useState('artists'), [query, setQuery] = React.useState(''), [offset, setOffset] = React.useState(0)
 	const [items, setItems] = React.useState([]), [total, setTotal] = React.useState(0), [busy, setBusy] = React.useState(false), [error, setError] = React.useState(''), [metadata, setMetadata] = React.useState(null), [popMetadata, setPopMetadata] = React.useState(null)
 	const [history, setHistory] = React.useState([])
@@ -50,6 +52,12 @@ export default function Search() {
 				setItems(previous => offset ? [...previous, ...page] : page)
 				setTotal(result.total)
 				setMetadata(result.metadata)
+				if (mode === 'Catalog' && category === 'albums' && config.query && catalog.runtime.library.albumStatus) {
+					for (let start = 0; start < page.length && !controller.signal.aborted; start += 4) {
+						const matched = await Promise.all(page.slice(start, start + 4).map(item => catalog.runtime.library.albumStatus(item, catalog.runtime.mb, controller.signal).catch(() => item)))
+						if (!controller.signal.aborted) setItems(previous => previous.map(item => matched.find(m => m.releaseGroupMbid === item.releaseGroupMbid) || item))
+					}
+				}
 			} catch (failure) { if (!controller.signal.aborted) setError(failure.message || 'Search unavailable') }
 			finally { if (!controller.signal.aborted) setBusy(false) }
 		}, 350)
@@ -72,6 +80,7 @@ export default function Search() {
 			<TextInput accessibilityLabel={`Search ${mode.toLowerCase()}`} placeholder={`Search ${mode.toLowerCase()}`} placeholderTextColor={theme.secondaryText} value={query} onChangeText={value => change(setQuery, value)} onSubmitEditing={remember} autoCapitalize="none" style={{ color: theme.primaryText, backgroundColor: theme.secondaryBack, padding: 14, borderRadius: 8, fontSize: 18 }} />
 		</View>
 		<ScrollView keyboardShouldPersistTaps="handled" contentContainerStyle={{ padding: 20, paddingBottom: 100, gap: 12 }}>
+			{!query && mode === 'Library' ? <CatalogButton onPress={() => navigation.navigate({ artists: 'ArtistExplorer', albums: 'AlbumExplorer', tracks: 'SongExplorer' }[category])}>Browse {category}</CatalogButton> : null}
 			{!query && history.map(h => <CatalogButton key={h} onPress={() => change(setQuery, h)}>{h}</CatalogButton>)}
 			{error ? <CatalogText>{error}</CatalogText> : null}
 			<MetadataNote metadata={metadata} /><MetadataNote metadata={popMetadata} label="ListenBrainz totals" />

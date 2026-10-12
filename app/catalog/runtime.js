@@ -1,5 +1,6 @@
 import AsyncStorage from '@react-native-async-storage/async-storage'
 import { Platform } from 'react-native'
+import { URL as IntegrationURL } from 'react-native-url-polyfill'
 import md5 from 'md5'
 import { createJsonClient } from './transport'
 import { createMetadataCache } from './cache'
@@ -15,8 +16,9 @@ const mbRequest = createJsonClient({ baseUrl: 'https://musicbrainz.org/ws/2', mi
 export const musicbrainz = createMusicBrainz({ request: mbRequest, cache })
 
 export const validateIntegration = integration => {
+	if (!integration.lidarrUrl?.trim() && !integration.apiKey?.trim()) return { ...integration, lidarrUrl: '', apiKey: '', listenBrainzToken: integration.listenBrainzToken?.trim() || '' }
 	let url
-	try { url = new URL(integration.lidarrUrl) } catch { throw new Error('Enter a valid Lidarr URL') }
+	try { url = new IntegrationURL(integration.lidarrUrl.trim()) } catch { throw new Error('Enter a valid Lidarr URL') }
 	if (!['https:', 'http:'].includes(url.protocol) || url.username || url.password || url.search || url.hash) throw new Error('Use a Lidarr HTTP(S) URL without credentials or query parameters')
 	if (!integration.apiKey?.trim()) throw new Error('Enter the Lidarr API key')
 	return { ...integration, lidarrUrl: url.toString().replace(/\/+$/, ''), apiKey: integration.apiKey.trim(), listenBrainzToken: integration.listenBrainzToken?.trim() || '' }

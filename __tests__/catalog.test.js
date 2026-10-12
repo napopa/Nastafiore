@@ -10,6 +10,7 @@ test('catalog identities never masquerade as Navidrome IDs and retain artist dis
 	expect(albumFromMB(group)).toMatchObject({ kind: 'album', releaseGroupMbid: 'group-mbid' })
 	expect(trackFromMB({ id: 'rec', title: 'Song', 'artist-credit': [{ artist }] })).toMatchObject({ recordingMbid: 'rec' })
 	expect(albumFromMB(group)).not.toHaveProperty('id')
+	expect(albumFromMB(group).availability).toBeNull()
 })
 
 test('missing ListenBrainz statistics remain unavailable, and real zero remains zero', () => {

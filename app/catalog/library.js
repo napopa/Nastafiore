@@ -13,7 +13,10 @@ export const createLibrary = read => {
 	const api = {
 		async complete(item, signal) {
 			if (item.kind) return { song: item, album: {} }
-			if (item.song || item.isDir || item.mediaType === 'album') return { song: item.song?.[0] || {}, album: (await read('getAlbum', { id: item.id }, signal)).album }
+			if (item.song || item.isDir || item.mediaType === 'album') {
+				const album = (await read('getAlbum', { id: item.id }, signal)).album
+				return { song: album?.song?.[0] || {}, album }
+			}
 			const song = (await read('getSong', { id: item.id }, signal)).song
 			return { song, album: song?.albumId ? (await read('getAlbum', { id: song.albumId }, signal)).album : {} }
 		},
@@ -30,6 +33,20 @@ export const createLibrary = read => {
 			return result.filter(Boolean)
 		},
 		async match(edition, signal) { return matchEdition(edition, await api.albumsFor(edition, signal)) },
+		async albumStatus(group, mb, signal) {
+			const albums = await api.albumsFor(group, signal)
+			let best = { availability: 'Missing', local: null }, uncertain = false
+			for (const album of albums) {
+				const releaseId = album.musicBrainzReleaseId || album.musicBrainzId
+				if (!releaseId) { uncertain = true; continue }
+				const edition = await mb.release(releaseId, signal)
+				if (edition.releaseGroupMbid !== group.releaseGroupMbid) continue
+				const matched = matchEdition(edition, [album])
+				if (matched.availability === 'Available') return { ...group, availability: 'Available', local: album, releaseMbid: edition.releaseMbid }
+				if (matched.availability === 'Partial') best = { availability: 'Partial', local: album, releaseMbid: edition.releaseMbid }
+			}
+			return { ...group, ...best, availability: best.availability === 'Missing' && uncertain ? null : best.availability }
+		},
 		async artist(artist, signal) {
 			const candidates = (await search(artist.name, 'artist', signal)).filter(a => a.musicBrainzId ? a.musicBrainzId === artist.mbid : normalized(a.name) === normalized(artist.name))
 			if (candidates.length !== 1) return { ...artist, local: null }

@@ -13,6 +13,8 @@ import { CatalogText, CatalogButton, Choices, Cover, Counts, MetadataNote } from
 export default function Artist({ route: { params } }) {
 	const catalog = useCatalog(), theme = useTheme(), insets = useSafeAreaInsets(), config = useConfig()
 	const [selected, setSelected] = React.useState(params.artist), [choices, setChoices] = React.useState([]), [data, setData] = React.useState(null), [sort, setSort] = React.useState('Release date'), [busy, setBusy] = React.useState(true), [error, setError] = React.useState('')
+	const [albumStatuses, setAlbumStatuses] = React.useState({}), [visibleCounts, setVisibleCounts] = React.useState({})
+	const checkedAlbums = React.useRef(new Set())
 	React.useEffect(() => {
 		if (selected?.mbid) return
 		const controller = new AbortController()
@@ -22,13 +24,13 @@ export default function Artist({ route: { params } }) {
 	React.useEffect(() => {
 		if (!selected?.mbid) return
 		const controller = new AbortController()
-		setBusy(true); setError(''); setData(null)
+		setBusy(true); setError(''); setData(null); setAlbumStatuses({}); checkedAlbums.current = new Set(); setVisibleCounts({})
 		;(async () => {
 			try {
 				const [artist, discography, top, artistCounts] = await Promise.all([catalog.runtime.mb.artist(selected.mbid, controller.signal), catalog.runtime.mb.discography(selected.mbid, controller.signal), catalog.runtime.lb.topTracks(selected.mbid, controller.signal), catalog.runtime.lb.counts('artist', [selected.mbid], controller.signal)])
 				const [localArtist, albumCounts] = await Promise.all([catalog.runtime.library.artist(artist, controller.signal).catch(() => artist), catalog.runtime.lb.counts('release-group', discography.items.map(a => a.releaseGroupMbid), controller.signal)])
 				const tracks = []
-				for (const track of top.items) tracks.push(await catalog.runtime.library.track(track, controller.signal).catch(() => ({ ...track, availability: null })))
+				for (const track of top.items.slice(0, 50)) tracks.push(await catalog.runtime.library.track(track, controller.signal).catch(() => ({ ...track, availability: null })))
 				if (!controller.signal.aborted) setData({ artist: localArtist, albums: discography.items.map(a => ({ ...a, popularity: albumCounts.items[a.releaseGroupMbid] })), tracks, popularity: artistCounts.items[selected.mbid], metadata: discography.metadata, popMetadata: top.metadata || artistCounts.metadata, rankingUnavailable: top.unavailable })
 			} catch (failure) { if (!controller.signal.aborted) setError(failure.message) }
 			finally { if (!controller.signal.aborted) setBusy(false) }
@@ -38,6 +40,21 @@ export default function Artist({ route: { params } }) {
 	const groups = {}
 	for (const album of data?.albums || []) { const type = [album.releaseType, ...(album.secondaryTypes || [])].join(' / '); (groups[type] ||= []).push(album) }
 	for (const group of Object.values(groups)) group.sort((a, b) => sort === 'Popularity' ? (b.popularity?.listens ?? -1) - (a.popularity?.listens ?? -1) : (b.date || '').localeCompare(a.date || ''))
+	React.useEffect(() => {
+		if (!data || !config.query || !catalog.runtime.library.albumStatus) return
+		const controller = new AbortController()
+		const visible = Object.entries(groups).flatMap(([type, albums]) => albums.slice(0, visibleCounts[type] || 25)).filter(a => !checkedAlbums.current.has(a.releaseGroupMbid))
+		;(async () => {
+			for (let offset = 0; offset < visible.length && !controller.signal.aborted; offset += 4) {
+				const batch = await Promise.all(visible.slice(offset, offset + 4).map(album => catalog.runtime.library.albumStatus(album, catalog.runtime.mb, controller.signal).catch(() => album)))
+				if (!controller.signal.aborted) {
+					for (const album of batch) checkedAlbums.current.add(album.releaseGroupMbid)
+					setAlbumStatuses(previous => ({ ...previous, ...Object.fromEntries(batch.map(album => [album.releaseGroupMbid, album])) }))
+				}
+			}
+		})()
+		return () => controller.abort()
+	}, [data?.albums, visibleCounts, sort, catalog.runtime, config.query])
 	const artist = data?.artist || selected
 	return <ScrollView style={mainStyles.mainContainer(theme)} contentContainerStyle={[mainStyles.contentMainContainer(insets), { paddingHorizontal: 20, paddingBottom: 100, gap: 14 }]}>
 		<Header title={artist?.name || 'Catalog artist'} />
@@ -52,7 +69,7 @@ export default function Artist({ route: { params } }) {
 			<CatalogText title>Popular tracks</CatalogText><CatalogText>Ranked by ListenBrainz total listens across releases.</CatalogText>
 			{data.rankingUnavailable || !data.tracks.length ? <CatalogText>ListenBrainz rankings unavailable</CatalogText> : data.tracks.map(t => <Row key={t.recordingMbid} item={t} />)}
 			<Choices values={['Release date', 'Popularity']} value={sort} onChange={setSort} />
-			{Object.entries(groups).map(([type, albums]) => <View key={type} style={{ gap: 8 }}><CatalogText title>Discography · {type}</CatalogText>{albums.map(a => <Row key={a.releaseGroupMbid} item={a} />)}</View>)}
+			{Object.entries(groups).map(([type, albums]) => <View key={type} style={{ gap: 8 }}><CatalogText title>Discography · {type}</CatalogText>{albums.slice(0, visibleCounts[type] || 25).map(a => <Row key={a.releaseGroupMbid} item={albumStatuses[a.releaseGroupMbid] || a} />)}{albums.length > (visibleCounts[type] || 25) ? <CatalogButton onPress={() => setVisibleCounts(previous => ({ ...previous, [type]: (previous[type] || 25) + 25 }))}>More {type} releases</CatalogButton> : null}</View>)}
 			<MetadataNote metadata={data.metadata} /><MetadataNote metadata={data.popMetadata} label="ListenBrainz totals" />
 		</> : null}
 		{busy ? <ActivityIndicator color={theme.primaryTouch} /> : null}{error ? <CatalogText>{error}</CatalogText> : null}

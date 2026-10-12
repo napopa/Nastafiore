@@ -6,7 +6,7 @@ import { CatalogText, CatalogButton, Cover } from './ui'
 export default function RequestSheet({ request, onChoose, onSubmit, onClose, onRefresh, onRetry, onPlay }) {
 	const theme = useTheme()
 	if (!request) return null
-	const album = request.review?.catalog || request.record?.catalog
+	const album = request.review?.catalog || (request.record?.catalog ? { ...request.record.catalog, releaseMbid: request.record.acquiredEdition?.releaseMbid || request.record.catalog.releaseMbid } : null)
 	const review = request.review
 	const record = request.record
 	return <Modal visible transparent animationType="slide" onRequestClose={onClose}>
@@ -26,11 +26,12 @@ export default function RequestSheet({ request, onChoose, onSubmit, onClose, onR
 					</> : null}
 					{request.phase === 'status' && record ? <>
 						<CatalogText title>{record.stage}</CatalogText>
+						{record.acquiredEdition ? <CatalogText>Acquired edition: {[record.acquiredEdition.editionDate, record.acquiredEdition.country, record.acquiredEdition.title].filter(Boolean).join(' · ')}</CatalogText> : null}
 						<CatalogText>Search: {record.searchStatus || (record.commandId ? 'submitted' : 'not submitted')}{'\n'}Download: {record.downloadStatus || 'not observed'}{'\n'}Imported tracks: {record.importedTrackCount ?? 'not checked'}</CatalogText>
 						{record.error ? <CatalogText>{record.error}</CatalogText> : null}
 						{record.lastCheckedAt ? <CatalogText>Checked {new Date(record.lastCheckedAt).toLocaleString()}</CatalogText> : null}
 						<CatalogButton onPress={onRefresh}>Check status</CatalogButton>
-						{['No source found', 'Failed', 'Import failed'].includes(record.stage) ? <CatalogButton onPress={onRetry}>Review and retry manually</CatalogButton> : null}
+						{['No source found', 'Failed', 'Import failed', 'Partial import'].includes(record.stage) ? <CatalogButton onPress={onRetry}>Review and retry manually</CatalogButton> : null}
 						{record.stage === 'Available' && record.playable?.length ? <CatalogButton onPress={onPlay} selected>Play</CatalogButton> : null}
 					</> : null}
 					{request.phase === 'error' ? <CatalogText>{request.error}</CatalogText> : null}

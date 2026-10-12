@@ -1,15 +1,15 @@
-let packageName = "com.sawyerf.castafiore"
+let packageName = "com.napopa.castafiore"
 if (process.env.IS_DEV === "true") {
-	packageName = "com.sawyerf.castafiore.dev"
+	packageName = "com.napopa.castafiore.dev"
 }
 
 module.exports = ({ config }) => {
 	return {
 		expo: {
-			name: "Castafiore" + (process.env.IS_DEV === "true" ? " (dev)" : ""),
-			slug: "Castafiore",
+			name: "Castafiore (napopa)" + (process.env.IS_DEV === "true" ? " (dev)" : ""),
+			slug: "Castafiore-napopa",
 			description: "Castafiore is a music player that support Navidrome and Subsonic API.",
-			version: config.version,
+			version: config.version || require("./package.json").version,
 			orientation: "default",
 			icon: "./assets/icon.png",
 			userInterfaceStyle: "light",
@@ -19,6 +19,7 @@ module.exports = ({ config }) => {
 			],
 			android: {
 				package: packageName,
+				versionCode: 2026101201,
 				edgeToEdgeEnabled: true,
 				permissions: [
 					"CHANGE_WIFI_MULTICAST_STATE",
@@ -39,11 +40,6 @@ module.exports = ({ config }) => {
 				startUrl: "./index.html",
 				backgroundColor: "#121212",
 				theme_color: "#121212"
-			},
-			extra: {
-				eas: {
-					projectId: "98d27f72-714e-415c-99f9-30f3f78d68e2"
-				}
 			},
 			experiments: {
 				baseUrl: process.env.PLATFORM === "web" ? "./" : undefined
@@ -68,6 +64,9 @@ module.exports = ({ config }) => {
 				],
 				[
 					'./plugins/asyncStorage.js'
+				],
+				[
+					'./plugins/localSigning.js'
 				],
 				[
 					"react-native-google-cast",

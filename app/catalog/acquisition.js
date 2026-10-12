@@ -13,7 +13,7 @@ export const createAcquisition = ({ lidarr, mb, library, journal, isActive = () 
 	const records = new Map(), pending = new Map(), polling = new Map()
 	let storageGate = Promise.resolve()
 	const ready = journal.load().then(items => {
-		for (const item of items || []) records.set(item.groupId, item.operation ? { ...item, stage: 'Uncertain' } : item)
+		for (const item of items || []) records.set(item.groupId, item.operation ? { ...item, stage: 'Uncertain' } : item.stage === 'Preparing' ? { ...item, stage: 'Failed', error: 'Setup was interrupted. Review and retry manually' } : item)
 		onChange([...records.values()])
 	})
 	const save = async record => {
@@ -48,19 +48,19 @@ export const createAcquisition = ({ lidarr, mb, library, journal, isActive = () 
 			const groupId = review.catalog.releaseGroupMbid
 			if (pending.has(groupId)) return pending.get(groupId)
 			const previous = records.get(groupId)
-			if (previous && (!retry || !['No source found', 'Failed', 'Import failed'].includes(previous.stage))) return previous.stage === 'Uncertain' ? api.refresh(groupId) : previous
+			if (previous && (!retry || !['No source found', 'Failed', 'Import failed', 'Partial import'].includes(previous.stage))) return previous.stage === 'Uncertain' ? api.refresh(groupId) : previous
 			const work = (async () => {
 				let record = previous || { groupId, catalog: journalAlbum(review.catalog), createdAt: now() }
-				const mutate = async (kind, write, reconcile) => {
+				const mutate = async (kind, write, reconcile, committed = () => ({})) => {
 					record = await save({ ...record, stage: 'Preparing', operation: { kind, startedAt: now() } })
 					try {
 						const result = await write()
-						record = await save({ ...record, operation: null })
+						record = await save({ ...record, ...committed(result), operation: null })
 						return result
 					} catch (error) {
 						if (!error.uncertain) throw error
 						const result = await reconcile().catch(() => null)
-						if (result) { record = await save({ ...record, operation: null }); return result }
+						if (result) { record = await save({ ...record, ...committed(result), operation: null }); return result }
 						throw error
 					}
 				}
@@ -68,17 +68,17 @@ export const createAcquisition = ({ lidarr, mb, library, journal, isActive = () 
 					const current = await api.review(review.catalog, review.defaults)
 					if (current.qualityProfileId !== review.qualityProfileId || current.metadataProfileId !== review.metadataProfileId || current.rootFolderPath !== review.rootFolderPath || current.paused !== review.paused) throw new Error('Lidarr settings changed. Review this album again')
 					let artist = current.artist
-					if (!current.existing) artist = await mutate('artist', () => lidarr.addArtist({ ...artist, id: undefined, rootFolderPath: current.rootFolderPath, qualityProfileId: current.qualityProfileId, metadataProfileId: current.metadataProfileId, monitored: true, monitorNewItems: 'none', addOptions: { monitor: 'none', searchForMissingAlbums: false } }), async () => (await lidarr.artists()).find(a => a.foreignArtistId === review.catalog.artist.mbid))
+					if (!current.existing) artist = await mutate('artist', () => lidarr.addArtist({ ...artist, id: undefined, rootFolderPath: current.rootFolderPath, qualityProfileId: current.qualityProfileId, metadataProfileId: current.metadataProfileId, monitored: true, monitorNewItems: 'none', addOptions: { monitor: 'none', searchForMissingAlbums: false } }), async () => (await lidarr.artists()).find(a => a.foreignArtistId === review.catalog.artist.mbid), result => ({ artistId: result.id }))
 					record = await save({ ...record, artistId: artist.id })
 					let album = await lidarr.album(groupId)
-					if (!album) album = await mutate('album', () => lidarr.addAlbum({ ...current.lookup, id: undefined, artist, artistId: artist.id, monitored: true, anyReleaseOk: true, addOptions: { searchForNewAlbum: false } }), () => lidarr.album(groupId))
+					if (!album) album = await mutate('album', () => lidarr.addAlbum({ ...current.lookup, id: undefined, artist, artistId: artist.id, monitored: true, anyReleaseOk: true, addOptions: { searchForNewAlbum: false } }), () => lidarr.album(groupId), result => ({ albumId: result.id }))
 					if (!album?.id) throw new Error('Lidarr did not return the selected album')
 					record = await save({ ...record, albumId: album.id })
 					if (!album.monitored) await mutate('monitor', () => lidarr.monitor(album.id).then(() => true), async () => (await lidarr.album(groupId))?.monitored)
 					const searchStartedAt = now()
 					record = await save({ ...record, searchStartedAt })
 					const active = (await lidarr.commands()).find(c => c.name === 'AlbumSearch' && c.body?.albumIds?.includes(album.id) && ['queued', 'started'].includes(c.status))
-					const command = active || await mutate('search', () => lidarr.search(album.id), async () => commandFor(await lidarr.commands(), album.id, searchStartedAt))
+					const command = active || await mutate('search', () => lidarr.search(album.id), async () => commandFor(await lidarr.commands(), album.id, searchStartedAt), result => ({ commandId: result.id, stage: 'Searching', error: null }))
 					return save({ ...record, stage: 'Searching', commandId: command.id, operation: null, error: null })
 				} catch (error) {
 					return save({ ...record, stage: error.uncertain || record.operation && !error.status ? 'Uncertain' : 'Failed', error: error.uncertain ? 'Write outcome uncertain. Check remote state before retrying' : error.message, operation: error.uncertain ? record.operation : null })
@@ -96,6 +96,7 @@ export const createAcquisition = ({ lidarr, mb, library, journal, isActive = () 
 				if (!record || pending.has(groupId)) return record
 				try {
 					const album = await lidarr.album(groupId)
+					if (!isActive()) return record
 					if (record.stage === 'Uncertain') {
 						const kind = record.operation?.kind
 						let found
@@ -107,7 +108,9 @@ export const createAcquisition = ({ lidarr, mb, library, journal, isActive = () 
 						record = await save({ ...record, operation: null, stage: kind === 'search' ? 'Searching' : 'Failed', commandId: kind === 'search' ? found.id : record.commandId, error: kind === 'search' ? null : 'Remote write reconciled. Review and retry manually' })
 					}
 					if (!album) return record
-					const [queue, tracks, command] = await Promise.all([lidarr.queue(), lidarr.tracks(album.id), record.commandId ? lidarr.command(record.commandId) : Promise.resolve(null)])
+					if (!isActive()) return record
+					const [queue, tracks, command] = await Promise.all([lidarr.queue(), lidarr.tracks(album.id), record.commandId ? lidarr.command(record.commandId).catch(() => null) : Promise.resolve(null)])
+					if (!isActive()) return record
 					const entries = queue.filter(q => q.albumId === album.id || q.album?.id === album.id)
 					let stage = record.stage
 					const imported = tracks.length > 0 && tracks.every(t => t.hasFile)
@@ -115,17 +118,20 @@ export const createAcquisition = ({ lidarr, mb, library, journal, isActive = () 
 						stage = 'Waiting for Navidrome'
 						const possibilities = []
 						for (const r of album.releases || []) {
+							if (!isActive()) return record
 							if (r.trackCount !== tracks.length) continue
 							const edition = await mb.release(r.foreignReleaseId)
 							if (edition.tracks.length === tracks.length && edition.tracks.every(t => tracks.some(rt => rt.foreignTrackId === t.trackMbid))) possibilities.push(edition)
 						}
 						if (possibilities.length === 1) {
+							if (!isActive()) return record
 							const acquired = possibilities[0]
 							const local = await library.match(acquired)
-							if (local.availability === 'Available') { stage = 'Available'; record = { ...record, acquiredReleaseMbid: acquired.releaseMbid, playable: local.tracks.map(t => t.local) } }
+							if (local.availability === 'Available') { stage = 'Available'; record = { ...record, acquiredReleaseMbid: acquired.releaseMbid, acquiredEdition: { releaseMbid: acquired.releaseMbid, title: acquired.editionTitle || acquired.title, editionDate: acquired.editionDate, country: acquired.country }, playable: local.tracks.map(t => t.local) } }
 						}
 					} else if (entries.some(q => ['warning', 'error'].includes(q.trackedDownloadStatus))) stage = 'Import failed'
 					else if (entries.length) stage = entries.some(q => q.status === 'completed' || q.sizeleft === 0) ? 'Importing' : 'Downloading'
+					else if (tracks.some(t => t.hasFile)) stage = 'Partial import'
 					else if (command?.status === 'failed' || command?.status === 'aborted') stage = 'Failed'
 					else if (command?.status === 'completed') stage = 'No source found'
 					return save({ ...record, stage, lastCheckedAt: now(), error: null, searchStatus: command?.status || null, downloadStatus: entries.length ? entries[0].status : null, importedTrackCount: tracks.filter(t => t.hasFile).length })

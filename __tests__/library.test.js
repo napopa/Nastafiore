@@ -20,3 +20,16 @@ test('album availability reads every local candidate, never infers completion fr
 	expect(await library.albumsFor({ title: 'Album', artist: { name: 'Artist' } })).toMatchObject([{ song: [] }])
 	expect(read).toHaveBeenCalledWith('getAlbum', { id: 'a' }, undefined)
 })
+test('album requests include the first recording from the complete album response', async () => {
+	const library = createLibrary(async () => ({ album: { id: 'album', musicBrainzId: 'single-release', song: [{ id: 'song', musicBrainzId: 'recording' }] } }))
+	expect(await library.complete({ id: 'album', mediaType: 'album' })).toMatchObject({ song: { musicBrainzId: 'recording' } })
+})
+test('catalog album availability verifies local edition identity rather than title alone', async () => {
+	const group = { kind: 'album', releaseGroupMbid: 'group', title: 'Album', artist: { name: 'Artist' } }
+	const local = { id: 'local-album', name: 'Album', artist: 'Artist', musicBrainzId: 'edition', song: [{ id: 's', title: 'Song', artist: 'Artist', track: 1, musicBrainzId: 'rec', duration: 100 }] }
+	const library = createLibrary(async path => path === 'search3' ? { searchResult3: { album: [local] } } : { album: local })
+	const mb = { release: async () => ({ ...group, releaseMbid: 'edition', tracks: [{ title: 'Song', position: 1, disc: 1, recordingMbid: 'rec', duration: 100000 }] }) }
+	expect(await library.albumStatus(group, mb)).toMatchObject({ availability: 'Available', local: { id: 'local-album' } })
+	mb.release = async () => ({ ...group, releaseGroupMbid: 'other', releaseMbid: 'edition', tracks: [] })
+	expect((await library.albumStatus(group, mb)).availability).toBe('Missing')
+})

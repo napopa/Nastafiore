@@ -1,5 +1,5 @@
 import React from 'react'
-import { render, fireEvent, waitFor } from '@testing-library/react-native'
+import { render, fireEvent, waitFor, act } from '@testing-library/react-native'
 import { CatalogContext } from '../app/contexts/catalog'
 import Search from '../app/components/catalog/Search'
 import Row from '../app/components/catalog/Row'
@@ -47,6 +47,11 @@ test('available catalog track plays its actual local item; missing track opens f
 	fireEvent.press(view.getByText('Song'))
 	expect(value.openRequest).toHaveBeenCalledWith(expect.objectContaining({ recordingMbid: 'r' }))
 })
+test('library browsing remains reachable without a search query', async () => {
+	const view = render(wrap(context(), <Search />))
+	await act(async () => {})
+	await waitFor(() => expect(view.getByText('Browse artists')).toBeTruthy())
+})
 test('ambiguous request sheet requires album selection and review before mutation', () => {
 	const onChoose = jest.fn(), onSubmit = jest.fn()
 	const view = render(<RequestSheet request={{ phase: 'choose', choices: [album, { ...album, releaseGroupMbid: 'other', title: 'Tagged Single', releaseType: 'Single' }] }} onChoose={onChoose} onSubmit={onSubmit} onClose={() => {}} />)
@@ -64,7 +69,8 @@ test('status sheet offers Play only after verified import and exposes manual ret
 	const view = render(<RequestSheet request={{ phase: 'status', record: { catalog: album, stage: 'No source found' } }} onPlay={onPlay} onClose={() => {}} />)
 	expect(view.queryByText('Play')).toBeNull()
 	expect(view.getByText('Review and retry manually')).toBeTruthy()
-	view.rerender(<RequestSheet request={{ phase: 'status', record: { catalog: album, stage: 'Available', playable: [{ id: 'real' }] } }} onPlay={onPlay} onClose={() => {}} />)
+	view.rerender(<RequestSheet request={{ phase: 'status', record: { catalog: album, stage: 'Available', acquiredEdition: { editionDate: '2021', country: 'GB' }, playable: [{ id: 'real' }] } }} onPlay={onPlay} onClose={() => {}} />)
+	expect(view.getByText(/Acquired edition: 2021.*GB/)).toBeTruthy()
 	fireEvent.press(view.getByText('Play'))
 	expect(onPlay).toHaveBeenCalledTimes(1)
 })
