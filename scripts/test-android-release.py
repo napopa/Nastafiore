@@ -1,6 +1,8 @@
 #!/usr/bin/env python3
 import importlib.util
+import json
 from pathlib import Path
+import re
 import unittest
 
 source = Path(__file__).resolve().parent / 'prepare-android-release.py'
@@ -15,6 +17,15 @@ class ReleaseChecks(unittest.TestCase):
 
     def test_correct_universal_signed_fork_is_accepted(self):
         release.validate(self.identity, release.CERTIFICATE, '2026.10.12', 2026101201)
+
+    def test_obtainium_import_contract_and_exact_apk_selection(self):
+        profile = json.loads((release.ROOT / 'public/obtainium.json').read_text())
+        self.assertIsInstance(profile['additionalSettings'], str)
+        settings = json.loads(profile['additionalSettings'])
+        self.assertEqual(profile['id'], release.PACKAGE)
+        self.assertFalse(settings['includePrereleases'])
+        self.assertIsNotNone(re.fullmatch(settings['apkFilterRegEx'], release.ASSET))
+        self.assertIsNone(re.fullmatch(settings['apkFilterRegEx'], 'unrelated.apk'))
 
     def test_wrong_package_version_code_and_architecture_are_rejected(self):
         for field, value in [('package', 'com.example.upstream'), ('version', '0.0.1'), ('code', 1), ('abis', ['x86_64'])]:

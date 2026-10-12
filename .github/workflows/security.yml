@@ -33,5 +33,7 @@ jobs:
           echo "$scanner_dir" >> "$GITHUB_PATH"
       - name: Verify publication guards
         run: python3 scripts/test-publication.py
+      - name: Verify Android release and Obtainium import contract
+        run: python3 scripts/test-android-release.py
       - name: Scan complete publication history
         run: python3 scripts/check-publication.py history

@@ -3,8 +3,5 @@
   "url": "https://github.com/napopa/Nastafiore",
   "author": "napopa",
   "name": "Nastafiore",
-  "additionalSettings": {
-    "apkFilterRegEx": "^Nastafiore-universal\\.apk$",
-    "includePrereleases": false
-  }
+  "additionalSettings": "{\"apkFilterRegEx\":\"^Nastafiore-universal\\\\.apk$\",\"includePrereleases\":false}"
 }
