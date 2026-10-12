@@ -1,6 +1,6 @@
 {
-  "name": "Castafiore (napopa)",
-  "short_name": "Castafiore",
+  "name": "Nastafiore",
+  "short_name": "Nastafiore",
   "description": "Navidrome player with MusicBrainz catalog discovery and Lidarr album requests",
   "lang": "en",
   "display": "standalone",

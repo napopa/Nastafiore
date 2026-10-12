@@ -47,7 +47,7 @@ const Settings = ({ navigation }) => {
 						style={mainStyles.icon}
 					/>
 					<View style={{ flexDirection: 'column', justifyContent: 'center' }}>
-						<Text style={{ color: theme.primaryText, fontSize: size.text.large, marginBottom: 0 }}>Castafiore (napopa)</Text>
+						<Text style={{ color: theme.primaryText, fontSize: size.text.large, marginBottom: 0 }}>Nastafiore</Text>
 						<Text style={{ color: theme.secondaryText, fontSize: size.text.small }}>Version {pkg.version}</Text>
 					</View>
 				</Pressable>

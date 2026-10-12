@@ -6,9 +6,9 @@ if (process.env.IS_DEV === "true") {
 module.exports = ({ config }) => {
 	return {
 		expo: {
-			name: "Castafiore (napopa)" + (process.env.IS_DEV === "true" ? " (dev)" : ""),
-			slug: "Castafiore-napopa",
-			description: "Castafiore is a music player that support Navidrome and Subsonic API.",
+			name: "Nastafiore" + (process.env.IS_DEV === "true" ? " (dev)" : ""),
+			slug: "Nastafiore",
+			description: "Nastafiore is a Navidrome and Subsonic music player with catalog discovery and album requests.",
 			version: config.version || require("./package.json").version,
 			orientation: "default",
 			icon: "./assets/icon.png",
@@ -36,7 +36,7 @@ module.exports = ({ config }) => {
 			},
 			web: {
 				favicon: "./assets/icon.png",
-				shortName: "Castafiore",
+				shortName: "Nastafiore",
 				startUrl: "./index.html",
 				backgroundColor: "#121212",
 				theme_color: "#121212"

@@ -31,7 +31,7 @@ const Theme = () => {
 						Object.keys(themes).map((themeName, index) => (
 							<SelectItem
 								key={index}
-								text={themeName}
+								text={themeName === 'castafiore' ? 'Nastafiore' : themeName}
 								icon="tint"
 								colorIcon={themes[themeName].primaryTouch}
 								isSelect={themeName == settings.theme}

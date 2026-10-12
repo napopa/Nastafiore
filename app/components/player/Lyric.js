@@ -77,7 +77,7 @@ const Lyric = ({ song, style, color = null, sizeText = 23 }) => {
 			duration: song.songInfo.duration
 		}
 		fetch('https://lrclib.net/api/get?' + Object.keys(params).map((key) => `${key}=${encodeURIComponent(params[key])}`).join('&'), {
-			headers: { 'Lrclib-Client': 'Castafiore' }
+			headers: { 'Lrclib-Client': 'Nastafiore' }
 		})
 			.then(res => res.json())
 			.then(res => {

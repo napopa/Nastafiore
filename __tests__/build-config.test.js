@@ -3,7 +3,7 @@ const { configureSigning } = require('../plugins/localSigning')
 test('Android fork coexists with upstream and has no upstream Expo project association', () => {
 	const config = appConfig({ config: { version: '2026.10.12' } }).expo
 	expect(config.android.package).toBe('com.napopa.castafiore')
-	expect(config.name).toBe('Castafiore (napopa)')
+	expect(config.name).toBe('Nastafiore')
 	expect(config.android.versionCode).toBe(require('../package.json').androidVersionCode)
 	expect(config.android.versionCode).toBeGreaterThan(0)
 	expect(config.extra?.eas?.projectId).toBeUndefined()

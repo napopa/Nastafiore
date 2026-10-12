@@ -18,7 +18,7 @@ const Navigation = () => {
 		<NavigationContainer
 			documentTitle={{
 				formatter: () => {
-					return `Castafiore (napopa)`
+					return `Nastafiore`
 				}
 			}}
 		>

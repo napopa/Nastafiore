@@ -17,7 +17,7 @@ export default function License() {
 		<Header title="License and source" />
 		<View style={settingStyles.contentMainContainer}>
 			<Text style={settingStyles.titleContainer(theme)}>GNU GPL version 3 only</Text>
-			<Text style={settingStyles.description(theme)}>Castafiore (napopa) is an independent fork. You may modify and redistribute this software under GPLv3. It comes without any warranty. A limited permission retains Google Cast support.</Text>
+			<Text style={settingStyles.description(theme)}>Nastafiore is an independent fork of Castafiore. You may modify and redistribute this software under GPLv3. It comes without any warranty. A limited permission retains Google Cast support.</Text>
 			<View style={settingStyles.optionsContainer(theme)}>
 				<ButtonMenu title="Matching source and releases" icon="github" onPress={() => Linking.openURL('https://github.com/napopa/Castafiore/releases')} />
 				<ButtonMenu title="Upstream Castafiore" icon="github" onPress={() => Linking.openURL('https://github.com/sawyerf/Castafiore')} isLast />

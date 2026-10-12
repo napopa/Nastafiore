@@ -12,7 +12,7 @@ import { createAcquisition } from './acquisition'
 import { integrationScope } from './integrations'
 
 const cache = createMetadataCache(AsyncStorage)
-const mbRequest = createJsonClient({ baseUrl: 'https://musicbrainz.org/ws/2', minIntervalMs: 1000, headers: Platform.OS === 'web' ? {} : { 'User-Agent': 'Castafiore-napopa/2026.10.12 (https://github.com/napopa/Castafiore)' } })
+const mbRequest = createJsonClient({ baseUrl: 'https://musicbrainz.org/ws/2', minIntervalMs: 1000, headers: Platform.OS === 'web' ? {} : { 'User-Agent': 'Nastafiore/2026.10.12 (https://github.com/napopa/Castafiore)' } })
 export const musicbrainz = createMusicBrainz({ request: mbRequest, cache })
 
 export const validateIntegration = integration => {
