@@ -8,12 +8,13 @@ import shutil
 import subprocess
 import sys
 
-ROOT = Path(__file__).resolve().parents[1]
+POLICY_ROOT = Path(__file__).resolve().parents[1]
+ROOT = Path(subprocess.check_output(['git', 'rev-parse', '--show-toplevel'], text=True).strip())
 URL = re.compile(rb'https?://(?P<userinfo>[^\s\x00\'"<>/@]+@)?(?P<host>[A-Za-z0-9.-]+)\b')
 CREDENTIAL = re.compile(rb'(?i)(password|api[_-]?key|listenbrainztoken|access[_-]?token|secret)[\'\"]?\s*[:=]\s*[\'\"]([^\'\"\r\n]+)[\'\"]')
 FIXTURE_VALUES = {'demo', 'key', 'private', 'private-key', 'old-key', 'top-secret', 'test-secret', 'session', 'lb-private', 'public-token', 'dummy-test-key', 'dummy-native-key'}
 PRIVATE_FILE = re.compile(r'(^|/)(?:signing\.properties|key\.properties|credentials\.json|secrets\.json|RKStorage|SecureStore\.xml)$|\.(?:jks|keystore|p12|pfx|pem|key)$', re.I)
-PUBLIC_HOSTS = {line.strip() for line in (ROOT / 'scripts/public-url-hosts.txt').read_text().splitlines() if line.strip() and not line.startswith('#')}
+PUBLIC_HOSTS = {line.strip() for line in (POLICY_ROOT / 'scripts/public-url-hosts.txt').read_text().splitlines() if line.strip() and not line.startswith('#')}
 
 
 def inspect_blob(path, data):
@@ -44,7 +45,7 @@ def git(*args):
     return subprocess.check_output(['git', *args], cwd=ROOT)
 
 
-def blobs(mode):
+def blobs(mode, pushed=()):
     if mode == 'worktree':
         for raw in git('ls-files', '-z', '--cached', '--others', '--exclude-standard').split(b'\0'):
             if raw:
@@ -62,7 +63,7 @@ def blobs(mode):
                 header, path = item.split(b'\t', 1)
                 objects.setdefault(header.split()[1], []).append(os.fsdecode(path))
     else:
-        for item in git('rev-list', '--objects', '--all').splitlines():
+        for item in git('rev-list', '--objects', '--all', *pushed).splitlines():
             oid, _, path = item.partition(b' ')
             objects.setdefault(oid, []).append(os.fsdecode(path))
     payload = b''.join(oid + b'\n' for oid in objects)
@@ -77,18 +78,27 @@ def blobs(mode):
         if kind == b'blob':
             for path in objects[oid]:
                 yield path, data
-        elif mode == 'history' and kind == b'commit':
+        elif mode in {'history', 'push'} and kind == b'commit':
             yield f'commit/{oid.decode()}', data
 
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument('mode', choices=['worktree', 'staged', 'history'], nargs='?', default='worktree')
+    parser.add_argument('mode', choices=['worktree', 'staged', 'history', 'push'], nargs='?', default='worktree')
     args = parser.parse_args()
+    pushed = []
+    if args.mode == 'push':
+        for line in sys.stdin:
+            fields = line.split()
+            if len(fields) != 4 or not re.fullmatch(r'[a-fA-F0-9]{40}|[a-fA-F0-9]{64}', fields[1]):
+                print('Invalid push reference input; values withheld', file=sys.stderr)
+                return 2
+            if set(fields[1]) != {'0'}:
+                pushed.append(fields[1])
     findings = set()
     scanned = 0
     text = []
-    for path, data in blobs(args.mode):
+    for path, data in blobs(args.mode, pushed):
         scanned += 1
         findings.update(inspect_blob(path, data))
         if b'\x00' not in data:

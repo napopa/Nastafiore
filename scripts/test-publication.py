@@ -33,8 +33,8 @@ class PublicationChecks(unittest.TestCase):
     def git(self, *args):
         return subprocess.run(['git', *args], cwd=self.root, capture_output=True, check=True)
 
-    def scan(self, mode):
-        return subprocess.run(['python3', 'scripts/check-publication.py', mode], cwd=self.root, capture_output=True, text=True)
+    def scan(self, mode, input=None):
+        return subprocess.run(['python3', 'scripts/check-publication.py', mode], cwd=self.root, input=input, capture_output=True, text=True)
 
     def test_public_apis_and_examples_are_accepted(self):
         for url in [b'https://musicbrainz.org/ws/2', b'https://lidarr.example/api/v1', b'http://127.0.0.1:8781']:
@@ -95,6 +95,17 @@ class PublicationChecks(unittest.TestCase):
         result = self.scan('history')
         self.assertEqual(result.returncode, 1)
         self.assertIn('unapproved URL hostname', result.stderr)
+        self.assertNotIn(url, result.stdout + result.stderr)
+
+    def test_push_of_unreachable_commit_is_also_checked(self):
+        base = self.git('rev-parse', 'HEAD').stdout.decode().strip()
+        url = 'https:' + '//personal.internal/api'
+        self.git('commit', '--quiet', '--allow-empty', '-m', 'Synthetic endpoint ' + url)
+        pushed = self.git('rev-parse', 'HEAD').stdout.decode().strip()
+        self.git('reset', '--quiet', '--hard', base)
+        self.assertEqual(self.scan('history').returncode, 0)
+        result = self.scan('push', f'HEAD {pushed} refs/heads/test {"0" * 40}\n')
+        self.assertEqual(result.returncode, 1)
         self.assertNotIn(url, result.stdout + result.stderr)
 
     def test_clean_snapshot_passes(self):
