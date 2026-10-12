@@ -142,7 +142,7 @@ const Settings = ({ navigation }) => {
 				<ButtonMenu
 					title="GitHub fork"
 					icon="github"
-					onPress={() => Linking.openURL('https://github.com/napopa/Castafiore')}
+					onPress={() => Linking.openURL('https://github.com/napopa/Nastafiore')}
 					isLast
 				/>
 			</View>
