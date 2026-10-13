@@ -15,7 +15,7 @@ const fixture = (existing = null) => {
 		lookupAlbum: async () => [lookup],
 		lookupArtist: async () => [lookup.artist],
 		settings: async () => ({ roots: [{ path: '/music' }], qualities: [{ id: 1, name: 'Lossless' }], metadata: [profile] }),
-		addArtist: jest.fn(async value => { writes.push(['artist', value]); const artist = { ...value, id: 1 }; artists.push(artist); return artist }),
+		addArtist: jest.fn(async value => { writes.push(['artist', value]); const artist = { ...value, id: 1, monitored: value.addOptions?.monitor === 'none' ? false : value.monitored }; artists.push(artist); return artist }),
 		addAlbum: jest.fn(async value => { writes.push(['album', value]); remote = { ...value, id: 9, artistId: 1 }; return remote }),
 		monitor: jest.fn(async id => { writes.push(['monitor', id]); remote.monitored = true }),
 		search: jest.fn(async id => { writes.push(['search', id]); command = { id: 5, name: 'AlbumSearch', body: { albumIds: [id] }, status: 'queued', started: new Date().toISOString() }; return command }),
@@ -37,9 +37,54 @@ test('new artist monitors no other or future albums and searches only selected a
 	const f = fixture()
 	const review = await f.acquisition.review(album, settings)
 	await f.acquisition.submit(review)
-	expect(f.writes[0]).toEqual(['artist', expect.objectContaining({ monitored: true, monitorNewItems: 'none', addOptions: { monitor: 'none', searchForMissingAlbums: false } })])
+	expect(f.writes[0]).toEqual(['artist', expect.objectContaining({ monitored: true, monitorNewItems: 'none', addOptions: { monitor: 'unknown', albumsToMonitor: ['group'], searchForMissingAlbums: false } })])
 	expect(f.writes[1][1]).toMatchObject({ foreignAlbumId: 'group', monitored: true, addOptions: { searchForNewAlbum: false } })
 	expect(f.writes.filter(w => w[0] === 'search')).toEqual([['search', 9]])
+})
+test('delayed Lidarr artist initialization keeps only the selected album monitored', async () => {
+	const f = fixture()
+	const result = await f.acquisition.submit(await f.acquisition.review(album, settings))
+	const artist = (await f.lidarr.artists())[0]
+	const selected = await f.lidarr.album('group')
+	const other = { foreignAlbumId: 'other', monitored: true }
+	const future = { foreignAlbumId: 'future', monitored: true }
+	// Lidarr applies these options after its asynchronous initial artist scan.
+	const options = artist.addOptions
+	for (const entry of [selected, other, future]) {
+		if (options.albumsToMonitor?.length) entry.monitored = options.albumsToMonitor.includes(entry.foreignAlbumId)
+		else if (options.monitor === 'none') entry.monitored = false
+	}
+	expect(result.stage).toBe('Searching')
+	expect(selected.monitored).toBe(true)
+	expect(artist.monitored).toBe(true)
+	expect(artist.monitorNewItems).toBe('none')
+	expect(other.monitored).toBe(false)
+	expect(future.monitored).toBe(false)
+	expect(f.lidarr.search).toHaveBeenCalledTimes(1)
+	expect(f.lidarr.search).toHaveBeenCalledWith(selected.id)
+})
+test.each([400, 409])('album discovered during creation is reconciled after HTTP %s and still searched', async status => {
+	const f = fixture()
+	f.lidarr.addAlbum = jest.fn(async () => {
+		f.setRemote({ id: 9, artistId: 1, foreignAlbumId: 'group', monitored: false })
+		throw Object.assign(new Error('Album already exists'), { status })
+	})
+	const result = await f.acquisition.submit(await f.acquisition.review(album, settings))
+	expect(result).toMatchObject({ stage: 'Searching', albumId: 9, commandId: 5, operation: null })
+	expect((await f.lidarr.album('group')).monitored).toBe(true)
+	expect(f.lidarr.addAlbum).toHaveBeenCalledTimes(1)
+	expect(f.lidarr.monitor).toHaveBeenCalledTimes(1)
+	expect(f.lidarr.search).toHaveBeenCalledTimes(1)
+	expect(f.lidarr.search).toHaveBeenCalledWith(9)
+})
+test('rejected album creation without a matching remote album fails without searching', async () => {
+	const f = fixture()
+	f.lidarr.addAlbum = jest.fn(async () => { throw Object.assign(new Error('Album rejected'), { status: 400 }) })
+	const result = await f.acquisition.submit(await f.acquisition.review(album, settings))
+	expect(result).toMatchObject({ stage: 'Failed', error: 'Album rejected', operation: null })
+	expect(f.lidarr.addAlbum).toHaveBeenCalledTimes(1)
+	expect(f.lidarr.monitor).not.toHaveBeenCalled()
+	expect(f.lidarr.search).not.toHaveBeenCalled()
 })
 test.each([true, false])('existing artist monitored=%s retains profiles, path and state', async monitored => {
 	const existing = { id: 1, foreignArtistId: 'artist', monitored, path: '/existing/path', qualityProfileId: 1, metadataProfileId: 2 }

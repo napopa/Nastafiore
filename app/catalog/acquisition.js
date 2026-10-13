@@ -61,7 +61,8 @@ export const createAcquisition = ({ lidarr, mb, library, journal, isActive = () 
 						record = await save({ ...record, ...committed(result), operation: null })
 						return result
 					} catch (error) {
-						if (!error.uncertain) throw error
+						const albumConflict = kind === 'album' && [400, 409].includes(error.status)
+						if (!error.uncertain && !albumConflict) throw error
 						const result = await reconcile().catch(() => null)
 						if (result) { record = await save({ ...record, ...committed(result), operation: null }); return result }
 						throw error
@@ -71,7 +72,7 @@ export const createAcquisition = ({ lidarr, mb, library, journal, isActive = () 
 					const current = await api.review(review.catalog, review.defaults)
 					if (current.qualityProfileId !== review.qualityProfileId || current.metadataProfileId !== review.metadataProfileId || current.rootFolderPath !== review.rootFolderPath || current.paused !== review.paused) throw new Error('Lidarr settings changed. Review this album again')
 					let artist = current.artist
-					if (!current.existing) artist = await mutate('artist', () => lidarr.addArtist({ ...artist, id: undefined, rootFolderPath: current.rootFolderPath, qualityProfileId: current.qualityProfileId, metadataProfileId: current.metadataProfileId, monitored: true, monitorNewItems: 'none', addOptions: { monitor: 'none', searchForMissingAlbums: false } }), async () => (await lidarr.artists()).find(a => a.foreignArtistId === review.catalog.artist.mbid), result => ({ artistId: result.id }))
+					if (!current.existing) artist = await mutate('artist', () => lidarr.addArtist({ ...artist, id: undefined, rootFolderPath: current.rootFolderPath, qualityProfileId: current.qualityProfileId, metadataProfileId: current.metadataProfileId, monitored: true, monitorNewItems: 'none', addOptions: { monitor: 'unknown', albumsToMonitor: [groupId], searchForMissingAlbums: false } }), async () => (await lidarr.artists()).find(a => a.foreignArtistId === review.catalog.artist.mbid), result => ({ artistId: result.id }))
 					record = await save({ ...record, artistId: artist.id })
 					let album = await lidarr.album(groupId)
 					if (!album) album = await mutate('album', () => lidarr.addAlbum({ ...current.lookup, id: undefined, artist, artistId: artist.id, monitored: true, anyReleaseOk: true, addOptions: { searchForNewAlbum: false } }), () => lidarr.album(groupId), result => ({ albumId: result.id }))
