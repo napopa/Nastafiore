@@ -12,8 +12,9 @@ POLICY_ROOT = Path(__file__).resolve().parents[1]
 ROOT = Path(subprocess.check_output(['git', 'rev-parse', '--show-toplevel'], text=True).strip())
 URL = re.compile(rb'https?://(?P<userinfo>[^\s\x00\'"<>/@]+@)?(?P<host>[A-Za-z0-9.-]+)\b')
 CREDENTIAL = re.compile(rb'(?i)(password|api[_-]?key|listenbrainztoken|access[_-]?token|secret)[\'\"]?\s*[:=]\s*[\'\"]([^\'\"\r\n]+)[\'\"]')
+HOME_PATH = re.compile(rb'(?:/(?:home|Users)/|[A-Za-z]:[\\/]+Users[\\/]+)[A-Za-z0-9_.-]+')
 FIXTURE_VALUES = {'demo', 'key', 'private', 'private-key', 'old-key', 'top-secret', 'test-secret', 'session', 'lb-private', 'public-token', 'dummy-test-key', 'dummy-native-key'}
-PRIVATE_FILE = re.compile(r'(^|/)(?:signing\.properties|key\.properties|credentials\.json|secrets\.json|RKStorage|SecureStore\.xml)$|\.(?:jks|keystore|p12|pfx|pem|key|log|sqlite(?:3)?(?:-\w+)?|db(?:-\w+)?)$|^(?:verification|artifacts|\.superpowers|\.secrets|\.credentials)/', re.I)
+PRIVATE_FILE = re.compile(r'(^|/)(?:signing\.properties|key\.properties|credentials\.json|secrets\.json|RKStorage|SecureStore\.xml)$|\.(?:jks|keystore|p12|pfx|pem|key|log|sqlite(?:3)?(?:-\w+)?|db(?:-\w+)?)$|^(?:verification|artifacts|\.superpowers|\.secrets|\.credentials)/|^docs/catalog-plan\.md$', re.I)
 PUBLIC_HOSTS = {line.strip() for line in (POLICY_ROOT / 'scripts/public-url-hosts.txt').read_text().splitlines() if line.strip() and not line.startswith('#')}
 
 
@@ -25,6 +26,8 @@ def inspect_blob(path, data):
     if b'\x00' in data:
         return findings
     fixture = path.startswith(('__tests__/', 'scripts/'))
+    for match in HOME_PATH.finditer(data):
+        findings.append((path, data.count(b'\n', 0, match.start()) + 1, 'personal home directory path'))
     for match in CREDENTIAL.finditer(data):
         label = path.startswith('app/i18next/') and match.group(1) == b'Password'
         dummy = fixture and match.group(2).decode(errors='replace').strip() in FIXTURE_VALUES
@@ -78,8 +81,8 @@ def blobs(mode, pushed=()):
         if kind == b'blob':
             for path in objects[oid]:
                 yield path, data
-        elif mode in {'history', 'push'} and kind == b'commit':
-            yield f'commit/{oid.decode()}', data
+        elif mode in {'history', 'push'} and kind in {b'commit', b'tag'}:
+            yield f'{kind.decode()}/{oid.decode()}', data
 
 
 def main():

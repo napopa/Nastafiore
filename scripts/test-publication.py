@@ -58,6 +58,37 @@ class PublicationChecks(unittest.TestCase):
             self.assertTrue(publication.inspect_blob(path, b'dummy'))
         self.assertEqual(publication.inspect_blob('.env.example', b''), [])
 
+    def test_personal_home_paths_are_rejected_without_echo(self):
+        for prefix in [b'/home/', b'/Users/', b'C:' + b'\\Users\\']:
+            value = prefix + b'private-user' + b'/signing/config'
+            findings = publication.inspect_blob('docs/build.md', value)
+            self.assertEqual(findings[0][2], 'personal home directory path')
+            self.assertNotIn('private-user', str(findings))
+
+    def test_removed_planning_document_cannot_be_reintroduced(self):
+        self.assertTrue(publication.inspect_blob('docs/catalog-plan.md', b''))
+
+    def test_deleted_personal_path_still_blocks_publication(self):
+        value = '/home/' + 'private-user/signing/config'
+        file = self.root / 'build.md'
+        file.write_text(value + '\n')
+        self.git('add', 'build.md')
+        self.git('commit', '--quiet', '-m', 'Synthetic path for regression')
+        self.git('rm', '--quiet', 'build.md')
+        self.git('commit', '--quiet', '-m', 'Remove synthetic path')
+        result = self.scan('history')
+        self.assertEqual(result.returncode, 1)
+        self.assertIn('personal home directory path', result.stderr)
+        self.assertNotIn(value, result.stdout + result.stderr)
+
+    def test_personal_path_in_tag_message_blocks_publication(self):
+        value = '/home/' + 'private-user/signing/config'
+        self.git('tag', '-a', 'privacy-check', '-m', 'Synthetic path ' + value)
+        result = self.scan('history')
+        self.assertEqual(result.returncode, 1)
+        self.assertIn('personal home directory path', result.stderr)
+        self.assertNotIn(value, result.stdout + result.stderr)
+
     def test_short_literal_passwords_are_rejected(self):
         value = b'pass' + b'word="1234"'
         self.assertEqual(publication.inspect_blob('app/config.js', value)[0][2], 'literal credential')
