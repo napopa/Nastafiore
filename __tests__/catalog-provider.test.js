@@ -11,6 +11,10 @@ jest.mock('../app/utils/player', () => ({ playSong: jest.fn() }))
 jest.mock('../app/catalog/runtime', () => ({ createCatalogRuntime: () => ({}), validateIntegration: x => x }))
 jest.mock('../app/catalog/storage', () => ({ integrationStore: { load: async () => null } }))
 jest.mock('../app/components/ImageError', () => () => null)
+jest.mock('react-native-safe-area-context', () => ({ useSafeAreaInsets: () => ({ top: 0, bottom: 0, left: 0, right: 0 }) }))
+jest.mock('@react-navigation/native', () => ({ useNavigation: () => ({ navigate: jest.fn() }) }))
+jest.mock('../app/contexts/settings', () => ({ useSettings: () => ({ isDesktop: false }) }))
+jest.mock('react-i18next', () => ({ useTranslation: () => ({ t: x => x }) }))
 const album = { kind: 'album', releaseGroupMbid: 'group', title: 'Album', artist: { mbid: 'artist', name: 'Artist' }, releaseType: 'Album' }
 const Consumer = () => {
 	const catalog = useCatalog()

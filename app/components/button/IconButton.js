@@ -5,11 +5,13 @@ import Icon from 'react-native-vector-icons/FontAwesome'
 import { useTheme } from '~/contexts/theme'
 import mainStyles from '~/styles/main'
 
-const IconButton = ({ icon, size = 23, color = undefined, style = {}, styleIcon = {}, pressEffect = true, onPress, onLongPress = null, delayLongPress = 200 }) => {
+const IconButton = ({ icon, size = 23, color = undefined, style = {}, styleIcon = {}, pressEffect = true, onPress, onLongPress = null, delayLongPress = 200, accessibilityLabel }) => {
 	const theme = useTheme()
 	return (
 		<Pressable
-			style={({ pressed }) => ([mainStyles.opacity({ pressed, enable: pressEffect }), { justifyContent: 'center' }, StyleSheet.flatten(style)])}
+			accessibilityRole="button"
+			accessibilityLabel={accessibilityLabel}
+			style={({ pressed }) => ([mainStyles.opacity({ pressed, enable: pressEffect }), { justifyContent: 'center', minWidth: 44, minHeight: 44 }, StyleSheet.flatten(style)])}
 			onLongPress={onLongPress}
 			delayLongPress={delayLongPress}
 			onPress={onPress}

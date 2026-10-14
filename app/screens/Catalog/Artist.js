@@ -5,16 +5,25 @@ import { useConfig } from '~/contexts/config'
 import { useCatalog } from '~/contexts/catalog'
 import { useTheme } from '~/contexts/theme'
 import { urlCover } from '~/utils/url'
-import Header from '~/components/Header'
+import PresHeader from '~/components/PresHeader'
+import OptionsPopup from '~/components/popup/OptionsPopup'
+import Information from '~/components/catalog/Information'
+import { externalLinks } from '~/components/catalog/links'
 import mainStyles from '~/styles/main'
 import Row from '~/components/catalog/Row'
-import { CatalogText, CatalogButton, Choices, Cover, Counts, MetadataNote } from '~/components/catalog/ui'
+import { CatalogText, CatalogButton, Counts } from '~/components/catalog/ui'
 
 export default function Artist({ route: { params } }) {
 	const catalog = useCatalog(), theme = useTheme(), insets = useSafeAreaInsets(), config = useConfig()
 	const [selected, setSelected] = React.useState(params.artist), [choices, setChoices] = React.useState([]), [data, setData] = React.useState(null), [sort, setSort] = React.useState('Release date'), [busy, setBusy] = React.useState(true), [error, setError] = React.useState('')
 	const [albumStatuses, setAlbumStatuses] = React.useState({}), [visibleCounts, setVisibleCounts] = React.useState({})
 	const checkedAlbums = React.useRef(new Set())
+	const [expanded, setExpanded] = React.useState(false), [menu, setMenu] = React.useState(null)
+	const identity = selected?.mbid || selected?.name
+	React.useEffect(() => { setSelected(params.artist) }, [params.artist])
+	React.useEffect(() => {
+		setBusy(true); setError(''); setData(null); setChoices([]); setAlbumStatuses({}); checkedAlbums.current = new Set(); setVisibleCounts({}); setExpanded(false); setMenu(null)
+	}, [identity, catalog.runtime])
 	React.useEffect(() => {
 		if (selected?.mbid) return
 		const controller = new AbortController()
@@ -24,7 +33,6 @@ export default function Artist({ route: { params } }) {
 	React.useEffect(() => {
 		if (!selected?.mbid) return
 		const controller = new AbortController()
-		setBusy(true); setError(''); setData(null); setAlbumStatuses({}); checkedAlbums.current = new Set(); setVisibleCounts({})
 		;(async () => {
 			try {
 				const [artist, discography] = await Promise.all([catalog.runtime.mb.artist(selected.mbid, controller.signal), catalog.runtime.mb.discography(selected.mbid, controller.signal)])
@@ -66,22 +74,37 @@ export default function Artist({ route: { params } }) {
 		return () => controller.abort()
 	}, [data?.albums, visibleCounts, sort, catalog.runtime, config.query])
 	const artist = data?.artist || selected
-	return <ScrollView style={mainStyles.mainContainer(theme)} contentContainerStyle={[mainStyles.contentMainContainer(insets), { paddingHorizontal: 20, paddingBottom: 100, gap: 14 }]}>
-		<Header title={artist?.name || 'Catalog artist'} />
-		{!selected?.mbid ? <><CatalogText>Select the artist identity.</CatalogText>{choices.map(a => <CatalogButton key={a.mbid} onPress={() => setSelected(a)}>{[a.name, a.country, a.type, a.disambiguation].filter(Boolean).join(' · ')}</CatalogButton>)}</> : null}
-		{data ? <>
-			<Cover uri={artist.local ? urlCover(config, artist.local) : artist.image} />
-			<CatalogText title>{artist.name}</CatalogText><Counts value={data.popularity} />
-			<CatalogText>{[artist.type, artist.country, artist.disambiguation, artist.lifeSpan?.begin, artist.lifeSpan?.end].filter(Boolean).join(' · ')}</CatalogText>
-			{artist.biography ? <CatalogText>{artist.biography.replace(/<[^>]*>/g, '')}</CatalogText> : null}
-			{artist.genres?.length ? <CatalogText>{artist.genres.map(g => g.name).join(' · ')}</CatalogText> : null}
-			{artist.links?.filter(l => /^https?:\/\//.test(l.url)).map(l => <CatalogButton key={l.url} onPress={() => Linking.openURL(l.url)}>{l.type}</CatalogButton>)}
-			<CatalogText title>Popular tracks</CatalogText><CatalogText>Ranked by ListenBrainz total listens across releases.</CatalogText>
-			{data.rankingUnavailable || !data.tracks.length ? <CatalogText>ListenBrainz rankings unavailable</CatalogText> : data.tracks.map(t => <Row key={t.recordingMbid} item={t} />)}
-			<Choices values={['Release date', 'Popularity']} value={sort} onChange={setSort} />
-			{Object.entries(groups).map(([type, albums]) => <View key={type} style={{ gap: 8 }}><CatalogText title>Discography · {type}</CatalogText>{albums.slice(0, visibleCounts[type] || 25).map(a => <Row key={a.releaseGroupMbid} item={albumStatuses[a.releaseGroupMbid] || a} />)}{albums.length > (visibleCounts[type] || 25) ? <CatalogButton onPress={() => setVisibleCounts(previous => ({ ...previous, [type]: (previous[type] || 25) + 25 }))}>More {type} releases</CatalogButton> : null}</View>)}
-			<MetadataNote metadata={data.metadata} /><MetadataNote metadata={data.popMetadata} label="ListenBrainz totals" />
-		</> : null}
-		{busy ? <ActivityIndicator color={theme.primaryTouch} /> : null}{error ? <CatalogText>{error}</CatalogText> : null}
-	</ScrollView>
+	const links = externalLinks(artist?.links)
+	const options = menu === 'links' ? links.map(link => ({ name: link.name, icon: 'external-link', onPress: () => { setMenu(null); Linking.openURL(link.url) } })) : menu === 'sort' ? ['Release date', 'Popularity'].map(value => ({ name: value, icon: 'sort', selected: value === sort, onPress: () => { setSort(value); setMenu(null) } })) : menu === 'info' ? [] : [
+		{ name: 'External links', icon: 'external-link', hidden: !links.length, onPress: () => setMenu('links') },
+		{ name: 'Catalog information', icon: 'info-circle', onPress: () => setMenu('info') },
+	]
+	return <>
+		<ScrollView style={mainStyles.mainContainer(theme)} contentContainerStyle={mainStyles.contentMainContainer(insets, false)}>
+			<PresHeader title={artist?.name || 'Catalog artist'} subTitle="Artist" imgSrc={artist?.local ? urlCover(config, artist.local) : artist?.image} optionLabel="Artist options" onPressOption={() => setMenu('options')} />
+			<View style={{ marginHorizontal: 20, paddingBottom: 30, gap: 12 }}>
+				{!selected?.mbid ? <><CatalogText>Select the artist identity.</CatalogText>{choices.map(a => <CatalogButton key={a.mbid} onPress={() => setSelected(a)}>{[a.name, a.country, a.type, a.disambiguation].filter(Boolean).join(' · ')}</CatalogButton>)}</> : null}
+				{data ? <>
+					<Counts value={data.popularity} />
+					<CatalogText>{[artist.type, artist.country, artist.disambiguation, artist.lifeSpan?.begin, artist.lifeSpan?.end].filter(Boolean).join(' · ')}</CatalogText>
+					{artist.biography ? <CatalogText>{artist.biography.replace(/<[^>]*>/g, '')}</CatalogText> : null}
+					{artist.genres?.length ? <CatalogText>{artist.genres.map(g => g.name).join(' · ')}</CatalogText> : null}
+					<CatalogText title>Popular tracks</CatalogText>
+					<CatalogText>ListenBrainz · total listens across releases</CatalogText>
+					{data.rankingUnavailable || !data.tracks.length ? <CatalogText>ListenBrainz rankings unavailable</CatalogText> : <View>{data.tracks.slice(0, expanded ? 50 : 5).map((track, index) => <Row key={track.recordingMbid} item={track} context="discovery" rank={index + 1} />)}</View>}
+					{!data.rankingUnavailable && data.tracks.length > 5 ? <CatalogButton compact onPress={() => setExpanded(!expanded)}>{expanded ? 'Show less' : 'Show more'}</CatalogButton> : null}
+					<View style={{ flexDirection: 'row', alignItems: 'center', gap: 10, marginTop: 12 }}>
+						<CatalogText title style={{ flex: 1 }}>Discography</CatalogText>
+						<CatalogButton compact icon="sort" accessibilityLabel="Sort discography" onPress={() => setMenu('sort')}>{sort}</CatalogButton>
+					</View>
+					<CatalogText>ListenBrainz · release group totals</CatalogText>
+					{Object.entries(groups).map(([type, albums]) => <View key={type} style={{ gap: 8 }}><CatalogText variant="group">{type}</CatalogText>{albums.slice(0, visibleCounts[type] || 25).map(a => <Row key={a.releaseGroupMbid} item={albumStatuses[a.releaseGroupMbid] || a} />)}{albums.length > (visibleCounts[type] || 25) ? <CatalogButton compact onPress={() => setVisibleCounts(previous => ({ ...previous, [type]: (previous[type] || 25) + 25 }))}>More {type} releases</CatalogButton> : null}</View>)}
+				</> : null}
+				{busy ? <ActivityIndicator color={theme.primaryTouch} /> : null}{error ? <CatalogText>{error}</CatalogText> : null}
+			</View>
+		</ScrollView>
+		<OptionsPopup visible={!!menu} close={() => setMenu(null)} catalogHeader={{ title: { links: 'External links', sort: 'Sort discography', info: 'Catalog information' }[menu] || artist?.name, subtitle: artist?.name }} options={options}>
+			{menu === 'info' ? <Information metadata={[artist?.metadata, data?.metadata]} popularityMetadata={data?.popMetadata} /> : null}
+		</OptionsPopup>
+	</>
 }

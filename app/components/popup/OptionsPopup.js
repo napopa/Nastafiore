@@ -22,6 +22,11 @@ const OptionItem = ({ option }) => {
 	if (option.hidden) return null
 	return (
 		<Pressable
+			{...(Platform.OS === 'web' && option.selected !== undefined ? { 'aria-pressed': option.selected } : {})}
+			accessibilityRole="button"
+			accessibilityLabel={option.accessibilityLabel || option.name}
+			accessibilityState={{ selected: !!option.selected, disabled: !!option.disabled }}
+			disabled={option.disabled}
 			onHoverIn={() => settings.isDesktop && setIsHover(true)}
 			onHoverOut={() => setIsHover(false)}
 			style={({ pressed }) => ([mainStyles.opacity({ pressed }), {
@@ -29,7 +34,8 @@ const OptionItem = ({ option }) => {
 				alignItems: 'center',
 				paddingHorizontal: 20,
 				paddingStart: 20 + 15 * (option.indent || 0),
-				height: 45,
+				minHeight: 45,
+				paddingVertical: 10,
 				justifyContent: 'flex-start',
 				alignContent: 'center',
 				gap: 10,
@@ -58,14 +64,14 @@ const OptionItem = ({ option }) => {
 				)
 			}
 			<Text
-				style={{ color: theme.primaryText, fontSize: size.text.large }}
-				numberOfLines={1}
+				style={{ color: theme.primaryText, fontSize: size.text.medium, flex: 1 }}
 			>{option.name}</Text>
+			{option.selected ? <Icon name="check" size={size.icon.tiny} color={theme.primaryTouch} /> : null}
 		</Pressable>
 	)
 }
 
-const OptionsPopup = ({ ref, visible, close, options, item = null }) => {
+const OptionsPopup = ({ ref, visible, close, options = [], item = null, catalogHeader = null, children, cancelLabel }) => {
 	const { t } = useTranslation()
 	const insets = useSafeAreaInsets()
 	const theme = useTheme()
@@ -113,6 +119,8 @@ const OptionsPopup = ({ ref, visible, close, options, item = null }) => {
 			statusBarTranslucent={true}
 			visible={visible}>
 			<ScrollView
+				accessibilityViewIsModal
+				keyboardShouldPersistTaps="handled"
 				vertical={true}
 				style={{
 					width: '100%',
@@ -126,6 +134,8 @@ const OptionsPopup = ({ ref, visible, close, options, item = null }) => {
 			>
 				<Pressable
 					onPress={close}
+					accessibilityRole="button"
+					accessibilityLabel="Dismiss options"
 					style={{
 						width: '100%',
 						minHeight: insets.top + 100,
@@ -144,8 +154,15 @@ const OptionsPopup = ({ ref, visible, close, options, item = null }) => {
 						transform: [{ translateY: slide }]
 					}}
 				>
+					{catalogHeader ? <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10, marginHorizontal: 20, paddingBottom: 15, marginBottom: 10, borderBottomWidth: 1, borderColor: theme.secondaryText }}>
+						{catalogHeader.image ? <ImageError source={{ uri: catalogHeader.image }} style={{ width: 50, height: 50, borderRadius: 5 }} /> : null}
+						<View style={{ flex: 1, gap: 3 }}>
+							<Text style={mainStyles.mediumText(theme.primaryText)}>{catalogHeader.title}</Text>
+							{catalogHeader.subtitle ? <Text style={mainStyles.smallText(theme.secondaryText)}>{catalogHeader.subtitle}</Text> : null}
+						</View>
+					</View> : null}
 					{
-						item &&
+						!catalogHeader && item &&
 						<View
 							style={{
 								flexDirection: 'row',
@@ -181,8 +198,9 @@ const OptionsPopup = ({ ref, visible, close, options, item = null }) => {
 							</View>
 						</View>
 					}
+					{children}
 					{[...(virtualOptions || options), {
-						name: t('Cancel'),
+						name: cancelLabel || t('Cancel'),
 						icon: 'close',
 						onPress: close
 					}].map((option, index) => (

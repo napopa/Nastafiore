@@ -9,7 +9,7 @@ import presStyles from '~/styles/pres'
 import ImageError from '~/components/ImageError'
 import IconButton from '~/components/button/IconButton'
 
-const PresHeader = ({ title, subTitle, imgSrc, onPressTitle = null, onPressOption = null, children = null }) => {
+const PresHeader = ({ title, subTitle, imgSrc, onPressTitle = null, onPressOption = null, optionLabel = 'Options', children = null }) => {
 	const theme = useTheme()
 	const insets = useSafeAreaInsets()
 
@@ -19,15 +19,18 @@ const PresHeader = ({ title, subTitle, imgSrc, onPressTitle = null, onPressOptio
 			{
 				onPressOption ?
 					<IconButton
+						accessibilityLabel={optionLabel}
 						icon="ellipsis-h"
 						onPress={onPressOption}
-						color={'white'}
+						color={theme.primaryText}
 						style={{
 							position: 'absolute',
 							padding: 20,
 							top: insets.top,
 							right: insets.left,
-							zIndex: 1
+							zIndex: 1,
+							backgroundColor: theme.primaryBack,
+							borderBottomLeftRadius: 20
 						}}
 					/> : null
 			}
@@ -39,7 +42,9 @@ const PresHeader = ({ title, subTitle, imgSrc, onPressTitle = null, onPressOptio
 				<View style={{ flex: 1 }}>
 					<Text style={presStyles.title(theme)} numberOfLines={2}>{title}</Text>
 					<Pressable
-						style={mainStyles.opacity}
+						style={({ pressed }) => [mainStyles.opacity({ pressed }), onPressTitle && { minHeight: 44, justifyContent: 'center' }]}
+						accessibilityRole={onPressTitle ? 'button' : undefined}
+						accessibilityLabel={onPressTitle ? subTitle : undefined}
 						onPress={onPressTitle}
 						disabled={!onPressTitle}
 					>

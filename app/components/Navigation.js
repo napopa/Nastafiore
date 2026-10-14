@@ -7,6 +7,7 @@ import { HomeStack, SearchStack, PlaylistsStack, SettingsStack } from '~/screens
 import { useSettings } from '~/contexts/settings'
 import { useTheme } from '~/contexts/theme'
 import TabBar from '~/components/bar/TabBar'
+import { CatalogProvider } from '~/contexts/catalog'
 
 const Tab = createBottomTabNavigator()
 
@@ -22,25 +23,27 @@ const Navigation = () => {
 				}
 			}}
 		>
-			<SystemBars style={theme.barStyle} />
-			<Tab.Navigator
-				tabBar={(props) => <TabBar {...props} />}
-				screenOptions={{
-					headerShown: false,
-					navigationBarColor: theme.primaryBack,
-					tabBarPosition: settings.isDesktop ? 'left' : 'bottom',
-					tabBarStyle: {
-						backgroundColor: theme.secondaryBack,
-						borderTopColor: theme.secondaryBack,
-						tabBarActiveTintColor: theme.primaryTouch,
-					}
-				}}
-			>
-				<Tab.Screen name="HomeStack" options={{ title: 'Home', icon: "home" }} component={HomeStack} />
-				<Tab.Screen name="SearchStack" options={{ title: 'Search', icon: "search" }} component={SearchStack} />
-				<Tab.Screen name="PlaylistsStack" options={{ title: 'Playlists', icon: "book" }} component={PlaylistsStack} />
-				<Tab.Screen name="SettingsStack" options={{ title: 'Settings', icon: "gear" }} component={SettingsStack} />
-			</Tab.Navigator>
+			<CatalogProvider>
+				<SystemBars style={theme.barStyle} />
+				<Tab.Navigator
+					tabBar={(props) => <TabBar {...props} />}
+					screenOptions={{
+						headerShown: false,
+						navigationBarColor: theme.primaryBack,
+						tabBarPosition: settings.isDesktop ? 'left' : 'bottom',
+						tabBarStyle: {
+							backgroundColor: theme.secondaryBack,
+							borderTopColor: theme.secondaryBack,
+							tabBarActiveTintColor: theme.primaryTouch,
+						}
+					}}
+				>
+					<Tab.Screen name="HomeStack" options={{ title: 'Home', icon: "home" }} component={HomeStack} />
+					<Tab.Screen name="SearchStack" options={{ title: 'Search', icon: "search" }} component={SearchStack} />
+					<Tab.Screen name="PlaylistsStack" options={{ title: 'Playlists', icon: "book" }} component={PlaylistsStack} />
+					<Tab.Screen name="SettingsStack" options={{ title: 'Settings', icon: "gear" }} component={SettingsStack} />
+				</Tab.Navigator>
+			</CatalogProvider>
 		</NavigationContainer>
 	)
 }

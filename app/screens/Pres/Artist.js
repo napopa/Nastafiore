@@ -1,5 +1,5 @@
 import React from 'react'
-import { CatalogButton } from '~/components/catalog/ui'
+import { CatalogNavigation } from '~/components/catalog/ui'
 import { Text, ScrollView, Pressable } from 'react-native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { useTranslation } from 'react-i18next'
@@ -104,7 +104,7 @@ const Artist = ({ navigation, route: { params } }) => {
 						size={size.icon.medium}
 					/>
 				</PresHeader>
-				<CatalogButton onPress={() => navigation.navigate('CatalogArtist', { artist: { kind: 'artist', mbid: artist.musicBrainzId || artistInfo.musicBrainzId, name: artist.name || params.name } })}>Full catalog and popularity</CatalogButton>
+				<CatalogNavigation onPress={() => navigation.navigate('CatalogArtist', { artist: { kind: 'artist', mbid: artist.musicBrainzId || artistInfo.musicBrainzId, name: artist.name || params.name } })}>Full catalog</CatalogNavigation>
 				{sortAlbum?.length ? (
 					<>
 						<Pressable onPress={() => navigation.navigate('ArtistAlbums', { albums: sortAlbum })} style={{

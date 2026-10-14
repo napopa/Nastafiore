@@ -11,7 +11,8 @@ jest.mock('../app/contexts/theme', () => ({ useTheme: () => ({ primaryText: '#ff
 jest.mock('../app/contexts/config', () => ({ useConfig: () => ({ url: 'https://nav.example', query: 'mock' }) }))
 jest.mock('@react-navigation/native', () => ({ useNavigation: () => ({ navigate: jest.fn(), goBack: jest.fn() }) }))
 jest.mock('react-native-safe-area-context', () => ({ useSafeAreaInsets: () => ({ top: 0, bottom: 0, left: 0, right: 0 }) }))
-jest.mock('../app/components/Header', () => () => null)
+jest.mock('../app/contexts/settings', () => ({ useSettings: () => ({ isDesktop: false }) }))
+jest.mock('react-i18next', () => ({ useTranslation: () => ({ t: x => x }) }))
 jest.mock('../app/components/ImageError', () => () => null)
 const artist = { kind: 'artist', mbid: 'a', name: 'Artist' }
 const album = { kind: 'album', releaseGroupMbid: 'g', title: 'Album', releaseType: 'Album', secondaryTypes: [], artist }
@@ -22,9 +23,10 @@ test('album defaults to track order, shows partial availability and switches edi
 	const view = render(<CatalogContext.Provider value={value}><Album route={{ params: { album } }} /></CatalogContext.Provider>)
 	await waitFor(() => expect(view.getByText('Partial')).toBeTruthy())
 	expect(view.getAllByText(/Song/).map(node => node.props.children)).toEqual(['Song 1', 'Song 2'])
-	fireEvent.press(view.getByText('Popularity'))
+	fireEvent.press(view.getByRole('button', { name: 'Sort tracks' }))
+	fireEvent.press(view.getByRole('button', { name: 'Popularity' }))
 	expect(view.getAllByText(/Song/).map(node => node.props.children)).toEqual(['Song 2', 'Song 1'])
-	fireEvent.press(view.getByText(/Edition:/))
+	fireEvent.press(view.getByRole('button', { name: 'Select edition' }))
 	fireEvent.press(view.getByText(/2001.*GB/))
 	await waitFor(() => expect(runtime.library.match).toHaveBeenCalledWith(expect.objectContaining({ releaseMbid: 'e2' }), expect.anything()))
 	fireEvent.press(await view.findByText('Play album'))
@@ -34,15 +36,16 @@ test('artist preserves local biography and groups full discography by release ty
 	const value = { runtime: { mb: { artist: async () => artist, discography: async () => ({ items: [album, { ...album, title: 'Single', releaseGroupMbid: 's', releaseType: 'Single' }] }) }, lb: { counts: async () => ({ items: {} }), topTracks: async () => ({ items: [] }) }, library: { artist: async a => ({ ...a, biography: 'Local biography retained.' }) } }, play: jest.fn(), openRequest: jest.fn() }
 	const view = render(<CatalogContext.Provider value={value}><Artist route={{ params: { artist } }} /></CatalogContext.Provider>)
 	await waitFor(() => expect(view.getByText('Local biography retained.')).toBeTruthy())
-	expect(view.getByText('Discography · Album')).toBeTruthy()
-	expect(view.getByText('Discography · Single')).toBeTruthy()
+	expect(view.getByText('Discography')).toBeTruthy()
+	expect(view.getByRole('header', { name: 'Album' })).toBeTruthy()
+	expect(view.getByRole('header', { name: 'Single' })).toBeTruthy()
 })
 
 test('artist metadata renders before unavailable Navidrome hydration completes', async () => {
  const never = () => new Promise(() => {})
  const value = { runtime: { mb: { artist: async () => artist, discography: async () => ({ items: [album] }) }, lb: { counts: async () => ({ items: {} }), topTracks: async () => ({ items: [{ kind: 'track', recordingMbid: 'r', title: 'Popular Song', artist }] }) }, library: { artist: never, track: never } }, play: jest.fn(), openRequest: jest.fn() }
  const view = render(<CatalogContext.Provider value={value}><Artist route={{ params: { artist } }} /></CatalogContext.Provider>)
- await waitFor(() => expect(view.getByText('Discography · Album')).toBeTruthy())
+ await waitFor(() => expect(view.getByText('Discography')).toBeTruthy())
  expect(view.getByText('Popular Song')).toBeTruthy()
  view.unmount()
 })
