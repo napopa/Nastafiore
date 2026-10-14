@@ -1,7 +1,7 @@
 {
   "name": "nastafiore",
-  "version": "2026.10.13",
-  "androidVersionCode": 2026101301,
+  "version": "2026.10.13.1",
+  "androidVersionCode": 2026101302,
   "main": "index.js",
   "homepage": ".",
   "scripts": {

@@ -1,5 +1,5 @@
 import React from 'react'
-import { View, TextInput, ScrollView, ActivityIndicator } from 'react-native'
+import { View, ScrollView, ActivityIndicator } from 'react-native'
 import AsyncStorage from '@react-native-async-storage/async-storage'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { useNavigation } from '@react-navigation/native'
@@ -10,9 +10,13 @@ import { getApi } from '~/utils/api'
 import HorizontalArtists from '~/components/lists/HorizontalArtists'
 import HorizontalAlbums from '~/components/lists/HorizontalAlbums'
 import SongsList from '~/components/lists/SongsList'
+import IconButton from '~/components/button/IconButton'
+import OptionsPopup from '~/components/popup/OptionsPopup'
 import mainStyles from '~/styles/main'
 import Row from './Row'
-import { CatalogText, CatalogButton, Choices, MetadataNote } from './ui'
+import Information from './Information'
+import { SearchSelector, SearchField, SearchLink } from './SearchControls'
+import { CatalogText } from './ui'
 
 export default function Search() {
 	const config = useConfig(), theme = useTheme(), catalog = useCatalog(), insets = useSafeAreaInsets()
@@ -20,6 +24,7 @@ export default function Search() {
 	const [mode, setMode] = React.useState('Library'), [category, setCategory] = React.useState('artists'), [query, setQuery] = React.useState(''), [offset, setOffset] = React.useState(0)
 	const [items, setItems] = React.useState([]), [total, setTotal] = React.useState(0), [busy, setBusy] = React.useState(false), [error, setError] = React.useState(''), [metadata, setMetadata] = React.useState(null), [popMetadata, setPopMetadata] = React.useState(null)
 	const [history, setHistory] = React.useState([])
+	const [informationOpen, setInformationOpen] = React.useState(false)
 	const [resultScope, setResultScope] = React.useState(catalog.scope)
 	React.useEffect(() => { setOffset(0); setItems([]); setTotal(0); setMetadata(null); setPopMetadata(null); setError(''); setResultScope(catalog.scope) }, [catalog.scope])
 	React.useEffect(() => { AsyncStorage.getItem('search.history').then(value => { try { setHistory(JSON.parse(value || '[]').filter(v => typeof v === 'string').slice(0, 12)) } catch { setHistory([]) } }) }, [])
@@ -74,23 +79,34 @@ export default function Search() {
 		const old = JSON.parse(await AsyncStorage.getItem('search.history') || '[]')
 		await AsyncStorage.setItem('search.history', JSON.stringify([...next, ...old.filter(h => typeof h !== 'string')]))
 	}
-	const change = (setter, value) => { setOffset(0); setItems([]); setTotal(0); setMetadata(null); setPopMetadata(null); setter(value) }
+	const change = (setter, value) => { setOffset(0); setItems([]); setTotal(0); setMetadata(null); setPopMetadata(null); setInformationOpen(false); setter(value) }
 	const visibleItems = resultScope === catalog.scope ? items : []
+	const emptyQuery = !query.trim()
 	return <View style={[mainStyles.mainContainer(theme), mainStyles.contentMainContainer(insets), { paddingBottom: 0 }]}>
-		<CatalogText title style={{ padding: 20 }}>Search</CatalogText>
-		<View style={{ paddingHorizontal: 20, gap: 12 }}>
-			<Choices values={['Library', 'Catalog']} value={mode} onChange={value => change(setMode, value)} />
-			<Choices values={[{ value: 'artists', label: 'Artists' }, { value: 'albums', label: 'Albums' }, { value: 'tracks', label: 'Tracks' }]} value={category} onChange={value => change(setCategory, value)} />
-			<TextInput accessibilityLabel={`Search ${mode.toLowerCase()}`} placeholder={`Search ${mode.toLowerCase()}`} placeholderTextColor={theme.secondaryText} value={query} onChangeText={value => change(setQuery, value)} onSubmitEditing={remember} autoCapitalize="none" style={{ color: theme.primaryText, backgroundColor: theme.secondaryBack, padding: 14, borderRadius: 8, fontSize: 18 }} />
+		<View style={{ flexDirection: 'row', alignItems: 'center', maxWidth: 680 }}>
+			<CatalogText variant="page" style={[mainStyles.mainTitle(theme), { flex: 1 }]}>Search</CatalogText>
+			{mode === 'Catalog' ? <IconButton icon="info-circle" accessibilityLabel="Catalog information" color={theme.secondaryText} style={{ alignItems: 'center', marginRight: 20 }} onPress={() => setInformationOpen(true)} /> : null}
 		</View>
-		<ScrollView keyboardShouldPersistTaps="handled" contentContainerStyle={{ padding: 20, paddingBottom: 100, gap: 12 }}>
-			{!query && mode === 'Library' ? <CatalogButton onPress={() => navigation.navigate({ artists: 'ArtistExplorer', albums: 'AlbumExplorer', tracks: 'SongExplorer' }[category])}>Browse {category}</CatalogButton> : null}
-			{!query && history.map(h => <CatalogButton key={h} onPress={() => change(setQuery, h)}>{h}</CatalogButton>)}
+		<View style={{ paddingHorizontal: 20, gap: 16, maxWidth: 680 }}>
+			<SearchSelector tabs values={['Library', 'Catalog']} value={mode} onChange={value => change(setMode, value)} />
+			<SearchField mode={mode} query={query} onChange={value => change(setQuery, value)} onSubmit={remember} />
+			<SearchSelector values={[{ value: 'artists', label: 'Artists' }, { value: 'albums', label: 'Albums' }, { value: 'tracks', label: 'Tracks' }]} value={category} onChange={value => change(setCategory, value)} />
+		</View>
+		<ScrollView keyboardShouldPersistTaps="handled" keyboardDismissMode="on-drag" contentContainerStyle={{ padding: 20, paddingBottom: 100 }}>
+			{emptyQuery ? <View style={{ maxWidth: 640, gap: 20 }}>
+				{mode === 'Library' ? <SearchLink title={`Browse ${category}`} subtitle={`Explore ${category} in your library`} icon={{ artists: 'user', albums: 'music', tracks: 'list' }[category]} onPress={() => navigation.navigate({ artists: 'ArtistExplorer', albums: 'AlbumExplorer', tracks: 'SongExplorer' }[category])} /> : <CatalogText>Discover artists, albums and tracks beyond your library.</CatalogText>}
+				{history.length ? <View>
+					<CatalogText variant="group" style={{ marginBottom: 8 }}>Recent searches</CatalogText>
+					{history.map(h => <SearchLink key={h} title={h} icon="history" onPress={() => change(setQuery, h)} />)}
+				</View> : null}
+			</View> : null}
 			{error ? <CatalogText>{error}</CatalogText> : null}
-			<MetadataNote metadata={metadata} /><MetadataNote metadata={popMetadata} label="ListenBrainz totals" />
 			{mode === 'Catalog' ? visibleItems.map(i => <Row key={i.mbid || i.releaseGroupMbid || i.recordingMbid} item={i} />) : category === 'artists' ? <HorizontalArtists artists={visibleItems} /> : category === 'albums' ? <HorizontalAlbums albums={visibleItems} /> : <SongsList songs={visibleItems} />}
-			{busy ? <ActivityIndicator color={theme.primaryTouch} /> : query.length > 1 && !visibleItems.length && !error ? <CatalogText>No results</CatalogText> : null}
-			{visibleItems.length > 0 && offset + 25 < total ? <CatalogButton disabled={busy} onPress={() => setOffset(offset + 25)}>Load more</CatalogButton> : null}
+			{busy ? <ActivityIndicator color={theme.primaryTouch} style={{ marginVertical: 20 }} /> : query.trim().length > 1 && !visibleItems.length && !error ? <CatalogText style={{ paddingVertical: 20 }}>No results</CatalogText> : null}
+			{visibleItems.length > 0 && offset + 25 < total ? <SearchLink title="Load more" icon="plus" disabled={busy} onPress={() => setOffset(offset + 25)} /> : null}
 		</ScrollView>
+		<OptionsPopup visible={informationOpen} close={() => setInformationOpen(false)} catalogHeader={{ title: 'Catalog information' }}>
+			<Information metadata={[metadata]} popularityMetadata={popMetadata} />
+		</OptionsPopup>
 	</View>
 }

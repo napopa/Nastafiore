@@ -1,4 +1,5 @@
 import React from 'react'
+import AsyncStorage from '@react-native-async-storage/async-storage'
 import { render, fireEvent, waitFor, act } from '@testing-library/react-native'
 import { CatalogContext } from '../app/contexts/catalog'
 import Search from '../app/components/catalog/Search'
@@ -53,6 +54,47 @@ test('library browsing remains reachable without a search query', async () => {
 	const view = render(wrap(context(), <Search />))
 	await act(async () => {})
 	await waitFor(() => expect(view.getByText('Browse artists')).toBeTruthy())
+})
+test('source tabs expose selection and retain the query and category when switching', async () => {
+	const view = render(wrap(context(), <Search />))
+	await act(async () => {})
+	expect(view.getByRole('tab', { name: 'Library', selected: true })).toBeTruthy()
+	fireEvent.press(view.getByRole('radio', { name: 'Albums' }))
+	fireEvent.changeText(view.getByPlaceholderText('Search library'), 'Album')
+	fireEvent.press(view.getByRole('tab', { name: 'Catalog' }))
+	expect(view.getByRole('tab', { name: 'Catalog', selected: true })).toBeTruthy()
+	expect(view.getByRole('radio', { name: 'Albums', checked: true })).toBeTruthy()
+	expect(view.getByPlaceholderText('Search catalog').props.value).toBe('Album')
+	view.unmount()
+})
+test('clearing a search restores recent searches without changing source or category', async () => {
+	await AsyncStorage.setItem('search.history', JSON.stringify(['Previous search']))
+	const view = render(wrap(context(), <Search />))
+	await view.findByText('Previous search')
+	fireEvent.press(view.getByText('Catalog'))
+	fireEvent.press(view.getByText('Albums'))
+	fireEvent.press(view.getByRole('button', { name: 'Previous search' }))
+	await view.findByRole('button', { name: 'Artist', exact: true })
+	fireEvent.press(view.getByRole('button', { name: 'Clear search' }))
+	expect(view.getByPlaceholderText('Search catalog').props.value).toBe('')
+	expect(view.queryByRole('button', { name: 'Artist', exact: true })).toBeNull()
+	expect(view.getByRole('radio', { name: 'Albums', checked: true })).toBeTruthy()
+	expect(view.getByRole('header', { name: 'Recent searches' })).toBeTruthy()
+	expect(view.getByRole('button', { name: 'Previous search' })).toBeTruthy()
+	await AsyncStorage.removeItem('search.history')
+})
+test('search metadata is available in the catalog information sheet', async () => {
+	const view = render(wrap(context(), <Search />))
+	await act(async () => {})
+	fireEvent.press(view.getByText('Catalog'))
+	fireEvent.changeText(view.getByPlaceholderText('Search catalog'), 'Artist')
+	await view.findByRole('button', { name: 'Artist', exact: true })
+	expect(view.queryByText(/Metadata updated/)).toBeNull()
+	fireEvent.press(view.getByRole('button', { name: 'Catalog information' }))
+	expect(view.getByText(/MusicBrainz supplies/)).toBeTruthy()
+	expect(view.getByText(/MusicBrainz updated/)).toBeTruthy()
+	fireEvent.press(view.getByRole('button', { name: 'Cancel' }))
+	expect(view.queryByText(/MusicBrainz supplies/)).toBeNull()
 })
 test('ambiguous request sheet requires album selection and review before mutation', () => {
 	const onChoose = jest.fn(), onSubmit = jest.fn()
